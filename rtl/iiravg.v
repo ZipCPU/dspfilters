@@ -37,18 +37,18 @@
 //
 `default_nettype	none
 //
-module	iiravg(i_clk, i_ce, i_val, o_val);
+module	iiravg(i_clk, i_ce, i_data, o_data);
 	parameter	IW=15, OW=16, LGALPHA=4;
 	localparam	AW=OW;
 	//
 	input	wire	i_clk, i_ce;
-	input	wire	[(IW-1):0]	i_val;
-	output	reg	[(OW-1):0]	o_val;
+	input	wire	[(IW-1):0]	i_data;
+	output	wire	[(OW-1):0]	o_data;
 
 	wire	signed	[(AW-1):0]	difference, adjustment;
 	reg	signed	[(AW-1):0]	r_average;
 
-	assign	difference = { i_val, {(AW-IW){1'b0}} } - r_average;
+	assign	difference = { i_data, {(AW-IW){1'b0}} } - r_average;
 	assign	adjustment = { {(LGALPHA){difference[(AW-1)]}},
 				difference[(AW-1):LGALPHA] };
 
@@ -56,6 +56,6 @@ module	iiravg(i_clk, i_ce, i_val, o_val);
 		if (i_ce)
 			r_average <= r_average + adjustment;
 
-	assign	o_val = r_average;
+	assign	o_data = r_average;
 
 endmodule

@@ -4,7 +4,9 @@
 //
 // Project:	DSP Filtering Example Project
 //
-// Purpose:	To demonstrate an exceptionally simple FIR filter.
+// Purpose:	This is the simplest (non-trivial) FIR filter you can create.
+//		This filter just averages two adjacent samples together.
+//	It's response h(z)=1+z^-1, H(e^(j2pif)) = 2*cos^2(2pi f), etc.
 //
 //	Filter taps:	[1, 1] (fixed)
 //	Filter Speed:	Full clock rate
@@ -42,14 +44,15 @@
 `default_nettype	none
 //
 module	smplfir(i_clk, i_ce, i_val, o_val);
-	parameter	IW=15;
-	localparam	OW=IW+1;
-	input	wire		i_clk, i_ce;
+	parameter			IW=15;
+	localparam			OW=IW+1;
+	input	wire			i_clk, i_ce;
 	input	wire	[(IW-1):0]	i_val;
 	output	wire	[(OW-1):0]	o_val;
 
 	reg	[(IW-1):0]	delayed;
 
+	initial	delayed = 0;
 	always @(posedge i_clk)
 		if (i_ce)
 			delayed <= i_val;
