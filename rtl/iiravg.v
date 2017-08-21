@@ -45,11 +45,11 @@ module	iiravg(i_clk, i_ce, i_data, o_data);
 	input	wire	[(IW-1):0]	i_data;
 	output	wire	[(OW-1):0]	o_data;
 
-	wire	signed	[(AW-1):0]	difference, adjustment;
-	reg	signed	[(AW-1):0]	r_average;
+	wire	signed [(AW-1):0]	difference, adjustment;
+	reg	[(AW-1):0]	r_average;
 
 	assign	difference = { i_data, {(AW-IW){1'b0}} } - r_average;
-	assign	adjustment = { {(LGALPHA){difference[(AW-1)]}},
+	assign	adjustment ={ {(LGALPHA){(difference[(AW-1)])}},
 				difference[(AW-1):LGALPHA] };
 
 	always @(posedge i_clk)
