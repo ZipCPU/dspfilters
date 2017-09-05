@@ -1,0 +1,120 @@
+////////////////////////////////////////////////////////////////////////////////
+//
+// Filename: 	firtap.v
+//
+// Project:	DSP Filtering Example Project
+//
+// Purpose:	Implements a single tap within a FIR filter.  This particular
+//		FIR tap design is specifically designed to make it easier
+//	for the parent module to add (or remove) taps.  Hence, by stringing
+//	N of these components together, an N tap filter can be created.
+//
+//	This fir tap is a component of genericfir.v, the high speed (1-sample
+//	per clock, adjustable tap) FIR filter.
+//
+//	Be aware, implementing a FIR tap in this manner can be a very expensive
+//	use of FPGA resources, very quickly necessitating a large FPGA for
+//	even the smallest (128 tap) filters.
+//
+//	Resource usage may be minimized by minizing the number of taps,
+//	minimizing the number of bits in each tap, and/or the number of bits
+//	in the input (and output) samples.
+//
+// Creator:	Dan Gisselquist, Ph.D.
+//		Gisselquist Technology, LLC
+//
+////////////////////////////////////////////////////////////////////////////////
+//
+// Copyright (C) 2017, Gisselquist Technology, LLC
+//
+// This program is free software (firmware): you can redistribute it and/or
+// modify it under the terms of  the GNU General Public License as published
+// by the Free Software Foundation, either version 3 of the License, or (at
+// your option) any later version.
+//
+// This program is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTIBILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// for more details.
+//
+// You should have received a copy of the GNU General Public License along
+// with this program.  (It's in the $(ROOT)/doc directory.  Run make with no
+// target there if the PDF file isn't present.)  If not, see
+// <http://www.gnu.org/licenses/> for a copy.
+//
+// License:	GPL, v3, as defined and found on www.gnu.org,
+//		http://www.gnu.org/licenses/gpl.html
+//
+//
+////////////////////////////////////////////////////////////////////////////////
+//
+//
+`default_nettype	none
+//
+module	firtap(i_clk, i_reset, i_tap_wr, i_tap, o_tap,
+		i_ce, i_sample, o_sample,
+		i_partial_acc, o_acc);
+	parameter		IW=16, TW=IW, OW=IW+TW+8;
+	parameter [0:0]		FIXED_TAPS=0;
+	parameter [(TW-1):0]	INITIAL_VALUE=0;
+	//
+	input	wire			i_clk, i_reset;
+	//
+	input	wire			i_tap_wr;
+	input	wire	[(TW-1):0]	i_tap;
+	output	wire signed [(TW-1):0]	o_tap;
+	//
+	input	wire			i_ce;
+	input	wire signed [(IW-1):0]	i_sample;
+	output	wire	[(IW-1):0]	o_sample;
+	//
+	input	wire	[(OW-1):0]	i_partial_acc;
+	output	wire	[(OW-1):0]	o_acc;
+	//
+
+	reg		[(IW-1):0]	delayed_sample;
+	reg	signed	[(TW+IW-1):0]	product;
+
+	// Determine the tap we are using
+	generate
+	if (FIXED_TAPS != 0)
+		assign	o_tap = INITIAL_VALUE;
+	else begin
+		reg	[(TW-1):0]	tap;
+
+		always @(posedge i_clk)
+			if (i_tap_wr)
+				tap <= i_tap;
+		assign o_tap = tap;
+
+	end endgenerate
+
+	// Forward the sample on down the line, to be the input sample for the
+	// next component
+	always @(posedge i_clk)
+		if (i_reset)
+		begin
+			delayed_sample <= 0;
+			o_sample <= 0;
+		end else if (i_ce)
+		begin
+			delayed_sample <= i_sample;
+			o_sample <= delayed_sample;
+		end
+
+	// Multiply the filter tap by the incoming sample
+	always @(posedge i_clk)
+		if (i_reset)
+			product <= 0;
+		else if (i_ce)
+			product <= o_tap * i_sample;
+
+	// Continue summing together the output components of the FIR filter
+	always @(posedge i_clk)
+		if (i_reset)
+			o_acc <= 0;
+		else if (i_ce)
+			o_acc <= i_partial_acc
+				+ { {(OW-(TW+IW)){product[(TW+IW-1)]}},
+						product };
+endmodule
