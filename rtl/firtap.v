@@ -78,10 +78,20 @@ module	firtap(i_clk, i_reset, i_tap_wr, i_tap, o_tap,
 	// Determine the tap we are using
 	generate
 	if (FIXED_TAPS != 0)
-		assign	o_tap = INITIAL_VALUE;
+		// If our taps are fixed, the tap is given by the i_tap
+		// external input.  This allows the parent module to be
+		// able to use readmemh to set all of the taps in a filter
+		assign	o_tap = i_tap;
+
 	else begin
+		// If the taps are adjustable, then use the i_tap_wr signal
+		// to know when to adjust the tap.  In this case, taps are
+		// strung together through the filter structure--our output
+		// tap becomes the input tap of the next tap module, and
+		// i_tap_wr causes all of them to shift forward by one.
 		reg	[(TW-1):0]	tap;
 
+		initial	tap = INITIAL_VALUE;
 		always @(posedge i_clk)
 			if (i_tap_wr)
 				tap <= i_tap;
@@ -98,6 +108,9 @@ module	firtap(i_clk, i_reset, i_tap_wr, i_tap, o_tap,
 			o_sample <= 0;
 		end else if (i_ce)
 		begin
+			// Note the two sample delay in this forwarding
+			// structure.  This aligns the inputs up so that the
+			// accumulator structure (below) works.
 			delayed_sample <= i_sample;
 			o_sample <= delayed_sample;
 		end
@@ -117,4 +130,11 @@ module	firtap(i_clk, i_reset, i_tap_wr, i_tap, o_tap,
 			o_acc <= i_partial_acc
 				+ { {(OW-(TW+IW)){product[(TW+IW-1)]}},
 						product };
+
+
+	// Make verilator happy
+	// verilate lint_on  UNUSED
+	wire	unused;
+	assign	unused = i_tap_wr;
+	// verilate lint_off UNUSED
 endmodule
