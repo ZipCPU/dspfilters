@@ -40,78 +40,56 @@
 #include <ctype.h>
 #include <string.h>
 #include <stdint.h>
+#include <complex>
 #include <assert.h>
 
 #include "verilated.h"
 #include "verilated_vcd_c.h"
 #include "Vgenericfir.h"
 #include "testb.h"
+#include "filtertb.h"
+#include "filtertb.cpp"
 
-class	GENERICFIR_TB : public TESTB<Vgenericfir> {
+const	unsigned	NTAPS = 128;
+const	unsigned	IW = 12;
+const	unsigned	TW = IW;
+const	unsigned	OW = IW+TW+7;
+const	unsigned	DELAY= NTAPS; // bits
+
+#define	GENERICFIR_TEMPLATE	Vgenericfir, DELAY, IW, OW, TW, NTAPS
+class	GENERICFIR_TB : public FILTERTB<GENERICFIR_TEMPLATE> {
 public:
-	bool		m_done;
-
 	GENERICFIR_TB(void) {
+	}
+
+	void	reset(void) {
+		FILTERTB<GENERICFIR_TEMPLATE>::reset();
+	}
+
+	void	apply(int nlen, int *data) {
+		FILTERTB<GENERICFIR_TEMPLATE>::apply(nlen, data);
+	}
+
+	void	load(int nlen, int *data) {
+		int	*alt = new int[nlen];
+
+		for(int i=0; i<nlen; i++)
+			alt[i] = data[nlen-1-i];
+		FILTERTB<GENERICFIR_TEMPLATE>::load(nlen, alt);
+		delete[] alt;
+	}
+
+	void	testload(int nlen, int *data) {
+		FILTERTB<GENERICFIR_TEMPLATE>::testload(nlen, data);
+	}
+
+	bool	test_bibo(void) {
+		return FILTERTB<GENERICFIR_TEMPLATE>::test_bibo();
 	}
 
 	void	trace(const char *vcd_trace_file_name) {
 		fprintf(stderr, "Opening TRACE(%s)\n", vcd_trace_file_name);
 		opentrace(vcd_trace_file_name);
-	}
-
-	void	close(void) {
-		TESTB<Vgenericfir>::closetrace();
-	}
-
-	void	tick(void) {
-		if (m_done)
-			return;
-
-		TESTB<Vgenericfir>::tick();
-	}
-
-	bool	done(void) {
-		if (m_done)
-			return true;
-		else if (Verilated::gotFinish())
-			m_done = true;
-		return m_done;
-	}
-
-	void	clear_filter(void) {
-		m_core->i_tap_wr = 0;
-		m_core->i_reset  = 1;
-		tick();
-		m_core->i_reset = 0;
-	}
-			
-	void	load_taps(const unsigned NTAPS, const int *taps) {
-		m_core->i_tap_wr = 1;
-		m_core->i_ce     = 0;
-
-		for(unsigned k=0; k<NTAPS; k++) {
-			m_core->i_tap = taps[k];
-			tick();
-		}
-
-		m_core->i_tap_wr = 0;
-	}
-
-	void	apply_filter(const unsigned NLEN, long int *signal) {
-		const	int	IW = 16, OW = 2*IW+8;
-		m_core->i_tap_wr = 0;
-		m_core->i_reset  = 0;
-		m_core->i_ce     = 1;
-
-		for(unsigned k=0; k<NLEN; k++) {
-			long	v;
-			m_core->i_sample = signal[k] & ((1l<<IW)-1);
-			tick();
-			v = m_core->o_result;
-			v <<= (8*sizeof(long)-OW);
-			v >>= (8*sizeof(long)-OW);
-			signal[k] = v;
-		}
 	}
 };
 
@@ -120,99 +98,76 @@ GENERICFIR_TB	*tb;
 int	main(int argc, char **argv) {
 	Verilated::commandArgs(argc, argv);
 	tb = new GENERICFIR_TB();
-	FILE	*dsp = fopen("dsp.64t", "w");
-	const	unsigned	NTAPS = 128;
-	const	unsigned	TAPW = 16; // bits
-	const	unsigned	IW   = 16; // bits
-	// const	unsigned	OW   = IW+TAPW+8; // bits
+	// FILE	*dsp = fopen("dsp.64t", "w");
 
-	const int	TAPVALUE = -0x7f;
+	const int	TAPVALUE = -(1<<(IW-1));
 	const int	IMPULSE  = (1<<(IW-1))-1;
 
-	int	tapvec[NTAPS], ntests = 0;
-	long	ivec[2*NTAPS];
+	int	tapvec[NTAPS];
+	int	ivec[2*NTAPS];
 
-	tb->trace("trace.vcd");
+	// tb->trace("trace.vcd");
 	tb->reset();
 
 	for(unsigned k=0; k<NTAPS; k++) {
+		printf("Test #%3d /%3d\n", k+1, NTAPS);
 		//
 		// Load a new set of taps
 		//
 		for(unsigned i=0; i<NTAPS; i++)
 			tapvec[i] = 0;
-		tapvec[k] = TAPVALUE & ((1<<TAPW)-1);
+		tapvec[k] = TAPVALUE;
 
-		tb->load_taps(NTAPS, tapvec);
+		tb->testload(NTAPS, tapvec);
 
-		// Clear any memory within the filter
-		tb->clear_filter();
-
-		for(unsigned i=0; i<2*NTAPS; i++)
-			ivec[i] = 0;
-		ivec[0] = IMPULSE & ((1<<IW)-1);
-
-		// Apply the filter to a test vector
-		tb->apply_filter(2*NTAPS, ivec); ntests++;
-
-		for(unsigned i=0; i<NTAPS; i++)
-			assert(ivec[i] == 0);
-
-		for(unsigned i=0; i<NTAPS; i++) {
-			if (NTAPS+i != 2*NTAPS-1-k)
-				assert(ivec[NTAPS+i] == 0);
-			else
-				assert(ivec[NTAPS+i] = IMPULSE * TAPVALUE);
-		}
-
-
-		// Write the results out
-		fwrite(ivec, sizeof(ivec[0]), 2*NTAPS, dsp);
+		tb->test_bibo();
 	}
 
 	//
 	// Block filter, impulse input
 	//
-	tb->clear_filter();
+	printf("Test #%3d /%3d\n", NTAPS+1, NTAPS+2);
 	for(unsigned i=0; i<NTAPS; i++)
-		tapvec[i] = TAPVALUE & ((1<<TAPW)-1);
+		tapvec[i] = TAPVALUE;
 
-	tb->load_taps(NTAPS, tapvec);
+	tb->testload(NTAPS, tapvec);
 
 	for(unsigned i=0; i<2*NTAPS; i++)
 		ivec[i] = 0;
 	ivec[0] = IMPULSE;
 
-	tb->apply_filter(2*NTAPS, ivec); ntests++;
-	fwrite(ivec, sizeof(ivec[0]), 2*NTAPS, dsp);
+	tb->test(2*NTAPS, ivec);
 
 	for(unsigned i=0; i<NTAPS; i++)
-		assert(ivec[i] == 0);
-
-	for(unsigned i=0; i<NTAPS; i++)
-		assert(ivec[NTAPS+i] == IMPULSE * TAPVALUE);
+		assert(ivec[i] == IMPULSE * TAPVALUE);
 
 	//
 	//
 	// Block filter, block input
-	tb->clear_filter();
+	printf("Test #%3d /%3d\n", NTAPS+2, NTAPS+2);
 
 	for(unsigned i=0; i<2*NTAPS; i++)
 		ivec[i] = IMPULSE;
 
-	tb->apply_filter(2*NTAPS, ivec); ntests++;
-	fwrite(ivec, sizeof(ivec[0]), 2*NTAPS, dsp);
+	tb->test(2*NTAPS, ivec);
 
 	for(unsigned i=0; i<NTAPS; i++)
-		assert(ivec[i] == 0);
+		assert(ivec[i] == ((int)i+1)*IMPULSE*TAPVALUE);
 
-	for(unsigned i=0; i<NTAPS; i++)
-		assert(ivec[NTAPS+i] == (i+1)*IMPULSE*TAPVALUE);
+	assert(tb->test_bibo());
 
-	printf("%d tests accomplished\n", ntests);
+	{
+		double fp, fs, depth, ripple;
+		tb->measure_lowpass(fp, fs, depth, ripple);
+		printf("FP     = %f\n", fp);
+		printf("FS     = %f\n", fs);
+		printf("DEPTH  = %6.2f dB\n", depth);
+		printf("RIPPLE = %.2g\n", ripple);
+	}
 
-	tb->close();
-	fclose(dsp);
+	printf("%d tests accomplished\nSUCCESS\n", NTAPS+3);
+
+	// tb->close();
 	exit(0);
 }
 

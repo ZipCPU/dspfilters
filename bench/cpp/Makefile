@@ -51,7 +51,7 @@ VOBJDR	:= $(RTLD)/obj_dir
 SYSVDR	:= $(VROOT)/include
 VSRC	:= verilated.cpp verilated_vcd_c.cpp
 VLIB	:= $(addprefix $(OBJDIR)/,$(subst .cpp,.o,$(VSRC)))
-PROGRAMS := generic_tb slowfil_tb symfil_tb fastfir_tb
+PROGRAMS := genericfir_tb slowfil_tb symfil_tb fastfir_tb
 all:	$(PROGRAMS)
 CFLAGS	:= -Wall -Og -g $(INCS)
 
@@ -63,7 +63,7 @@ $(OBJDIR)/%.o: $(SYSVDR)/%.cpp
 	$(mk-objdir)
 	$(CXX) $(CFLAGS) $(INCS) -c $< -o $@
 
-generic_tb: $(OBJDIR)/genericfir_tb.o $(VLIB) $(VOBJDR)/Vgenericfir__ALL.a
+genericfir_tb: $(OBJDIR)/genericfir_tb.o $(VLIB) $(VOBJDR)/Vgenericfir__ALL.a
 	$(CXX) $(FLAGS) $(INCS) $^ -o $@
 
 fastfir_tb: $(OBJDIR)/fastfir_tb.o $(VLIB) $(VOBJDR)/Vfastfir__ALL.a
