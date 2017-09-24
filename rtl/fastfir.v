@@ -1,10 +1,13 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Filename: 	genericfir.v
+// Filename: 	fastfir.v
 //
 // Project:	DSP Filtering Example Project
 //
-// Purpose:	Implement a high speed (1-output per clock), adjustable tap FIR
+// Purpose:	Implement a high speed (1-output per clock), adjustable tap
+//		FIR.  Unlike our previous example in genericfir.v, this example
+//	attempts to optimize the algorithm via the use of a better delay
+//	structure for the input samples.
 //
 // Creator:	Dan Gisselquist, Ph.D.
 //		Gisselquist Technology, LLC
@@ -37,7 +40,7 @@
 //
 `default_nettype	none
 //
-module	genericfir(i_clk, i_reset, i_tap_wr, i_tap, i_ce, i_sample, o_result);
+module	fastfir(i_clk, i_reset, i_tap_wr, i_tap, i_ce, i_sample, o_result);
 	parameter		NTAPS=128, IW=12, TW=IW, OW=2*IW+8;
 	parameter [0:0]		FIXED_TAPS=0;
 	input	wire			i_clk, i_reset;
@@ -80,20 +83,21 @@ module	genericfir(i_clk, i_reset, i_tap_wr, i_tap, i_ce, i_sample, o_result);
 				.INITIAL_VALUE(0))
 			tapk(i_clk, i_reset,
 				// Tap update circuitry
-				tap_wr, tap[NTAPS-1-k], tapout[k],
+				tap_wr, tap[k], tapout[k+1],
 				// Sample delay line
-				i_ce, sample[k], sample[k+1],
+				// We'll let the optimizer trim away sample[k+1]
+				i_ce, sample[0], sample[k+1],
 				// The output accumulator
 				result[k], result[k+1]);
 
 		if (!FIXED_TAPS)
-			assign	tap[NTAPS-1-k] = tapout[k+1];
+			assign	tap[k+1] = tapout[k+1];
 
 		// Make verilator happy
 		// verilator lint_off UNUSED
 		wire	[(TW-1):0]	unused_tap;
 		if (FIXED_TAPS)
-			assign	unused_tap    = tapout[k];
+			assign	unused_tap    = tapout[k+1];
 		// verilator lint_on UNUSED
 	end endgenerate
 

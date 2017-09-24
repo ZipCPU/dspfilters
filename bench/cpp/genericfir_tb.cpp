@@ -70,15 +70,6 @@ public:
 		FILTERTB<GENERICFIR_TEMPLATE>::apply(nlen, data);
 	}
 
-	void	load(int nlen, int *data) {
-		int	*alt = new int[nlen];
-
-		for(int i=0; i<nlen; i++)
-			alt[i] = data[nlen-1-i];
-		FILTERTB<GENERICFIR_TEMPLATE>::load(nlen, alt);
-		delete[] alt;
-	}
-
 	void	testload(int nlen, int *data) {
 		FILTERTB<GENERICFIR_TEMPLATE>::testload(nlen, data);
 	}
