@@ -37,7 +37,29 @@
 //
 #include "filtertb.h"
 
-FILTERTB_TEMPLATE void	FILTERTB_CLS::tick(void) { TESTB<VA>::tick(); }
+int	sbits(uint32_t val, int b) {
+	int	s;
+
+	s = (val << (sizeof(int)*8-b));
+	s >>= (sizeof(int)*8-b);
+	return	s;
+}
+
+FILTERTB_TEMPLATE void	FILTERTB_CLS::tick(void) {
+	bool	ce;
+	int	vec[2];
+
+	ce = (TESTB<VA>::m_core->i_ce);
+	vec[0] = sbits(TESTB<VA>::m_core->i_sample, IW());
+
+	TESTB<VA>::tick();
+
+	vec[1] = sbits(TESTB<VA>::m_core->o_result, OW());
+
+	if ((ce)&&(result_fp))
+		fwrite(vec, sizeof(int), 2, result_fp);
+}
+
 FILTERTB_TEMPLATE void	FILTERTB_CLS::reset(void) {
 	TESTB<VA>::m_core->i_tap   = 0;
 	TESTB<VA>::m_core->i_sample= 0;
@@ -50,15 +72,18 @@ FILTERTB_TEMPLATE void	FILTERTB_CLS::reset(void) {
 }
 
 FILTERTB_TEMPLATE void	FILTERTB_CLS::apply(int nlen, int *data) {
+// printf("FILTERTB::apply(%d, ...)\n", nlen);
 	TESTB<VA>::m_core->i_reset  = 0;
 	TESTB<VA>::m_core->i_tap_wr = 0;
+	TESTB<VA>::m_core->i_ce     = 0;
+	tick();
 	TESTB<VA>::m_core->i_ce     = 1;
 	for(int i=0; i<nlen; i++) {
 		int	v;
 
 		// Strip off any excess bits
 		v = data[i];
-		v &= (1<<IW)-1;
+		v &= (1<<IW())-1;
 		TESTB<VA>::m_core->i_sample= v;
 
 		// Apply the filter
@@ -66,14 +91,15 @@ FILTERTB_TEMPLATE void	FILTERTB_CLS::apply(int nlen, int *data) {
 
 		v = TESTB<VA>::m_core->o_result;
 		// Sign extend the result
-		v <<= (8*sizeof(v)-OW);
-		v >>= (8*sizeof(v)-OW);
+		v <<= (8*sizeof(v)-OW());
+		v >>= (8*sizeof(v)-OW());
 		data[i] = v;
 	}
 	TESTB<VA>::m_core->i_ce     = 0;
 }
 
 FILTERTB_TEMPLATE void	FILTERTB_CLS::load(int  ntaps,  int *data) {
+// printf("FILTERTB::load(%d, ...)\n", ntaps);
 	TESTB<VA>::m_core->i_reset = 0;
 	TESTB<VA>::m_core->i_ce    = 0;
 	TESTB<VA>::m_core->i_tap_wr= 1;
@@ -82,7 +108,7 @@ FILTERTB_TEMPLATE void	FILTERTB_CLS::load(int  ntaps,  int *data) {
 
 		// Strip off any excess bits
 		v = data[i];
-		v &= (1<<TW)-1;
+		v &= (1<<m_tw)-1;
 		TESTB<VA>::m_core->i_tap = v;
 
 		// Apply the filter
@@ -90,9 +116,7 @@ FILTERTB_TEMPLATE void	FILTERTB_CLS::load(int  ntaps,  int *data) {
 	}
 	TESTB<VA>::m_core->i_tap_wr= 0;
 
-	if (m_hk)
-		delete[] m_hk;
-	m_hk = NULL;
+	clear_cache();
 }
 
 FILTERTB_TEMPLATE void	FILTERTB_CLS::test(int  nlen, int *data) {
@@ -105,8 +129,9 @@ FILTERTB_TEMPLATE void	FILTERTB_CLS::test(int  nlen, int *data) {
 	TESTB<VA>::m_core->i_tap_wr = 0;
 	TESTB<VA>::m_core->i_tap    = 0;
 	TESTB<VA>::m_core->i_ce = 1;
-	
-	for(int i=0; i<nlen+DELAY; i++) {
+
+	int	tstcounts = nlen+delay();
+	for(int i=0; i<tstcounts; i++) {
 		int	v;
 
 		// Strip off any excess bits
@@ -114,24 +139,24 @@ FILTERTB_TEMPLATE void	FILTERTB_CLS::test(int  nlen, int *data) {
 			TESTB<VA>::m_core->i_sample = v = 0;
 		else {
 			v = data[i];
-			v &= (1<<IW)-1;
+			v &= (1<<IW())-1;
 			TESTB<VA>::m_core->i_sample = v;
 		}
 
 		if (debug)
-			printf("%3d, %3d, %d : Input : %5d[%6x] ", i, DELAY, nlen, v,v );
+			printf("%3d, %3d, %d : Input : %5d[%6x] ", i, delay(), nlen, v,v );
 
 		// Apply the filter
 		tick();
 
 		v = TESTB<VA>::m_core->o_result;
 		// Sign extend the result
-		v <<= (8*sizeof(v)-OW);
-		v >>= (8*sizeof(v)-OW);
+		v <<= (8*sizeof(v)-OW());
+		v >>= (8*sizeof(v)-OW());
 
-		if (i >= DELAY) {
+		if (i >= delay()) {
 			if (debug) printf("Read    :%8d[%8x]\n", v, v);
-			data[i-DELAY] = v;
+			data[i-delay()] = v;
 		} else if (debug)
 			printf("Discard : %2d\n", v);
 	}
@@ -140,10 +165,17 @@ FILTERTB_TEMPLATE void	FILTERTB_CLS::test(int  nlen, int *data) {
 
 FILTERTB_TEMPLATE void	FILTERTB_CLS::response(int nfreq,
 		COMPLEX *rvec, double mag) {
-	int	nlen = NTAPS;
-	int	*data = new int[nlen+DELAY+NTAPS];
+	int	nlen = NTAPS();
+	int	dlen = nlen + delay() + 2*NTAPS(), doffset = delay()+NTAPS();
+	int	*data = new int[dlen];
 
-	mag = mag * ((1<<(IW-1))-1);
+	// Nh tap filter
+	// Nv length vector
+	// Nh+Nv-1 length output
+	// But we want our output length to not include any runups
+	//
+	// Nh runup + Nv + Nh rundown + delay
+	mag = mag * ((1<<(IW()-1))-1);
 
 	for(int i=0; i<nfreq; i++) {
 		double	dtheta = 2.0 * M_PI * i / (double)nfreq / 2.0,
@@ -151,32 +183,35 @@ FILTERTB_TEMPLATE void	FILTERTB_CLS::response(int nfreq,
 		COMPLEX	acc = 0.;
 
 		theta = 0;
-		for(int j=NTAPS; j<nlen+DELAY+NTAPS; j++) {
+		for(int j=NTAPS(); j<NTAPS()+nlen; j++) {
 			double	dv = mag * cos(theta);
 
 			theta += dtheta;
 			data[j] = dv;
 		}
 
+		for(int j=NTAPS()+nlen; j<dlen; j++)
+			data[j] = 0;
+
 		theta = -dtheta;
-		for(int j=NTAPS-1; j>= 0; j--) {
+		for(int j=NTAPS()-1; j>= 0; j--) {
 			double	dv = mag * cos(theta);
 
 			theta -= dtheta;
 			data[j] = dv;
 		}
 
-		apply(nlen+DELAY+NTAPS, data);
+		apply(dlen, data);
 
 		theta = 0.0;
 		for(int j=0; j<nlen; j++) {
 			double	cs = cos(theta) / mag,
 				sn = sin(theta) / mag;
 
-			theta -= dtheta;
+			theta += dtheta;
 
-			real(acc) += cs * data[j+NTAPS+DELAY];
-			imag(acc) += sn * data[j+NTAPS+DELAY];
+			real(acc) += cs * data[j+doffset];
+			imag(acc) += sn * data[j+doffset];
 		}
 
 		// Repeat what should produce the same response, but using
@@ -184,32 +219,35 @@ FILTERTB_TEMPLATE void	FILTERTB_CLS::response(int nfreq,
 		// frequency
 		if (i > 0) {
 			theta = 0.0;
-			for(int j=NTAPS; j<nlen+DELAY+NTAPS; j++) {
+			for(int j=NTAPS(); j<NTAPS()+nlen; j++) {
 				double	dv = mag * sin(theta);
 
 				theta += dtheta;
 				data[j] = dv;
 			}
+			for(int j=NTAPS()+nlen; j<dlen; j++)
+				data[j] = 0;
+
 
 			theta = -dtheta;
-			for(int j=NTAPS-1; j>=0; j--) {
+			for(int j=NTAPS()-1; j>=0; j--) {
 				double	dv = mag * sin(theta);
 
 				theta -= dtheta;
 				data[j] = dv;
 			}
 
-			apply(nlen+DELAY+NTAPS, data);
+			apply(dlen, data);
 
 			theta = 0.0;
 			for(int j=0; j<nlen; j++) {
 				double	cs = cos(theta) / mag,
 					sn = sin(theta) / mag;
 
-				theta -= dtheta;
+				theta += dtheta;
 
-				real(acc) += sn * data[j+NTAPS+DELAY];
-				imag(acc) += cs * data[j+NTAPS+DELAY];
+				real(acc) += sn * data[j+doffset];
+				imag(acc) += cs * data[j+doffset];
 			}
 
 		} rvec[i] = acc * (1./ nlen);
@@ -230,21 +268,24 @@ FILTERTB_TEMPLATE void	FILTERTB_CLS::response(int nfreq,
 
 FILTERTB_TEMPLATE int	FILTERTB_CLS::operator[](const int tap) {
 
-	if ((tap < 0)||(tap >= 2*NTAPS))
+	if ((tap < 0)||(tap >= 2*NTAPS()))
 		return 0;
 	else if (!m_hk) {
-		int	nlen = 2*NTAPS;
+		int	nlen = 2*NTAPS();
 		m_hk = new int[nlen];
 
+		// Create an input vector with a single impulse in it
 		for(int i=0; i<nlen; i++)
 			m_hk[i] = 0;
-		m_hk[0] = -(1<<(IW-2));
+		m_hk[0] = -(1<<(IW()-2));
 
+		// Apply the filter to the impulse vector
 		test(nlen, m_hk);
 
+		// Set our m_hk vector based upon the results
 		for(int i=0; i<nlen; i++) {
 			int	shift;
-			shift = IW-2;
+			shift = IW()-2;
 			m_hk[i] >>= shift;
 			m_hk[i] = -m_hk[i];
 		}
@@ -255,6 +296,7 @@ FILTERTB_TEMPLATE int	FILTERTB_CLS::operator[](const int tap) {
 }
 
 FILTERTB_TEMPLATE void	FILTERTB_CLS::testload(int nlen, int *data) {
+// printf("FILTERTB::testload(%d, ...)\n", nlen);
 	load(nlen, data);
 	reset();
 
@@ -264,23 +306,23 @@ FILTERTB_TEMPLATE void	FILTERTB_CLS::testload(int nlen, int *data) {
 			printf("Data[k] = %d != (*this)[k] = %d\n", data[k], m);
 		assert(data[k] == m);
 	}
-	for(int k=nlen; k<2*DELAY; k++)
+	for(int k=nlen; k<2*DELAY(); k++)
 		assert(0 == (*this)[k]);
 }
 
 FILTERTB_TEMPLATE bool	FILTERTB_CLS::test_bibo(void) {
-	int	nlen = 2*NTAPS;
+// printf("TESTING-BIBO\n");
+	int	nlen = 2*NTAPS();
 	int	*input  = new int[nlen],
 		*output = new int[nlen];
-	int	maxv = (1<<(IW-1))-1;
+	int	maxv = (1<<(IW()-1))-1;
 	bool	pass = true, tested = false;
 
 	// maxv = 1;
-printf("TESTING-BIBO\n");
 
 	for(int k=0; k<nlen; k++) {
 		// input[v] * (*this)[(NTAPS-1)-v]
-		if ((*this)[NTAPS-1-k] < 0)
+		if ((*this)[NTAPS()-1-k] < 0)
 			input[k] = -maxv;
 		else
 			input[k] =  maxv;
@@ -292,7 +334,7 @@ printf("TESTING-BIBO\n");
 	for(int k=0; k<nlen; k++) {
 		long	acc = 0;
 		bool	all = true;
-		for(int v = 0; v<NTAPS; v++) {
+		for(int v = 0; v<NTAPS(); v++) {
 			if (k-v >= 0) {
 				acc += input[k-v] * (*this)[v];
 				if (acc < 0)
@@ -315,7 +357,7 @@ printf("TESTING-BIBO\n");
 
 FILTERTB_TEMPLATE void	FILTERTB_CLS::measure_lowpass(double &fp, double &fs,
 			double &depth, double &ripple) {
-	const	int	NLEN = 16*NTAPS;
+	const	int	NLEN = 16*NTAPS();
 	COMPLEX	*data = new COMPLEX[NLEN];
 	double	*magv = new double[NLEN];
 	double	dc, maxpass, minpass, maxstop;

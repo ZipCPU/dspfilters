@@ -45,13 +45,13 @@ OBJDIR  := obj-pc
 RTLD	:= ../../rtl
 VERILATOR_ROOT ?= $(shell bash -c 'verilator -V|grep VERILATOR_ROOT | head -1 | sed -e " s/^.*=\s*//"')
 VROOT   := $(VERILATOR_ROOT)
-INCS	:= -I$(RTLD)/obj_dir/ -I$(VROOT)/include
-SOURCES := genericfir_tb.cpp slowfil_tb.cpp symfil_tb.cpp fastfir_tb.cpp filtertb.cpp
+INCS	:= -I$(RTLD)/obj_dir/ -I$(VROOT)/include -I../rtl/obj_dir
+SOURCES := genericfir_tb.cpp slowfil_tb.cpp symfil_tb.cpp fastfir_tb.cpp filtertb.cpp boxcar_tb.cpp
 VOBJDR	:= $(RTLD)/obj_dir
 SYSVDR	:= $(VROOT)/include
 VSRC	:= verilated.cpp verilated_vcd_c.cpp
 VLIB	:= $(addprefix $(OBJDIR)/,$(subst .cpp,.o,$(VSRC)))
-PROGRAMS := genericfir_tb slowfil_tb symfil_tb fastfir_tb
+PROGRAMS := genericfir_tb slowfil_tb symfil_tb fastfir_tb boxcar_tb
 all:	$(PROGRAMS)
 CFLAGS	:= -Wall -Og -g $(INCS)
 
@@ -73,6 +73,9 @@ slowfil_tb: $(OBJDIR)/slowfil_tb.o $(VLIB) $(VOBJDR)/Vslowfil__ALL.a
 	$(CXX) $(FLAGS) $(INCS) $^ -o $@
 
 symfil_tb: $(OBJDIR)/symfil_tb.o $(VLIB) $(VOBJDR)/Vsymmetricfir__ALL.a
+	$(CXX) $(FLAGS) $(INCS) $^ -o $@
+
+boxcar_tb: $(OBJDIR)/boxcar_tb.o $(VLIB) ../rtl/obj_dir/Vboxwrapper__ALL.a
 	$(CXX) $(FLAGS) $(INCS) $^ -o $@
 
 #

@@ -4,9 +4,9 @@
 ##
 ## Project:	DSP Filtering Example Project
 ##
-## Purpose:	To direct the Verilator build of the SoC sources.  The result
-##		is C++ code (built by Verilator), that is then built (herein)
-##	into a library.
+## Purpose:	To direct the Verilator build of any RTL sources used for
+##		bench testing.  The result is C++ code (built by Verilator),
+##	that is then built (herein) into a library.
 ##
 ## Targets:	The default target, all, builds the target test, which includes
 ##		the libraries necessary for Verilator testing.
@@ -16,7 +16,7 @@
 ##
 ################################################################################
 ##
-## Copyright (C) 2015-2016, Gisselquist Technology, LLC
+## Copyright (C) 2017, Gisselquist Technology, LLC
 ##
 ## This program is free software (firmware): you can redistribute it and/or
 ## modify it under the terms of  the GNU General Public License as published
@@ -43,19 +43,13 @@ all:
 FBDIR := .
 VDIRFB:= $(FBDIR)/obj_dir
 VERILATOR := verilator
-VFLAGS := -O3 -Wall -MMD -trace -cc
+VFLAGS := -O3 -Wall -MMD -trace -y ../../rtl -cc
 SUBMAKE := make --no-print-directory -C
 
-.PHONY: all genericfir symmetricfir slowfil
-all: smplfir iiravg genericfir fastfir boxcar # symmetricfir slowfil
+.PHONY: all boxwrapper
+all: boxwrapper
 
-genericfir:	$(VDIRFB)/Vgenericfir__ALL.a
-fastfir:	$(VDIRFB)/Vfastfir__ALL.a
-symmetricfir:	$(VDIRFB)/Vsymmetricfir__ALL.a
-slowfil:	$(VDIRFB)/Vslowfil__ALL.a
-smplfir:	$(VDIRFB)/Vsmplfir__ALL.a
-iiravg:		$(VDIRFB)/Viiravg__ALL.a
-boxcar:		$(VDIRFB)/Vboxcar__ALL.a
+boxwrapper:	$(VDIRFB)/Vboxwrapper__ALL.a
 
 $(VDIRFB)/V%.cpp $(VDIRFB)/V%.h $(VDIRFB)/V%.mk: $(FBDIR)/%.v
 	$(VERILATOR) $(VFLAGS) $*.v
@@ -63,26 +57,8 @@ $(VDIRFB)/V%.cpp $(VDIRFB)/V%.h $(VDIRFB)/V%.mk: $(FBDIR)/%.v
 #$(VDIRFB)/V%__ALL.a: $(VDIRFB)/V%.mk
 #	$(SUBMAKE) $(VDIRFB)/ -f $< $(subst $(VDIRFB)/,,$@)
 
-$(VDIRFB)/Vgenericfir__ALL.a: $(VDIRFB)/Vgenericfir.mk
-	$(SUBMAKE) $(VDIRFB)/ -f Vgenericfir.mk Vgenericfir__ALL.a
-
-$(VDIRFB)/Vfastfir__ALL.a: $(VDIRFB)/Vfastfir.mk
-	$(SUBMAKE) $(VDIRFB)/ -f Vfastfir.mk Vfastfir__ALL.a
-
-$(VDIRFB)/Vsymmetricfir__ALL.a: $(VDIRFB)/Vsymmetricfir.mk
-	$(SUBMAKE) $(VDIRFB)/ -f Vsymmetricfir.mk Vsymmetricfir__ALL.a
-
-$(VDIRFB)/Vslowfil__ALL.a: $(VDIRFB)/Vslowfil.mk
-	$(SUBMAKE) $(VDIRFB)/ -f Vslowfil.mk Vslowfil__ALL.a
-
-$(VDIRFB)/Viiravg__ALL.a: $(VDIRFB)/Viiravg.mk
-	$(SUBMAKE) $(VDIRFB)/ -f Viiravg.mk Viiravg__ALL.a
-
-$(VDIRFB)/Vsmplfir__ALL.a: $(VDIRFB)/Vsmplfir.mk
-	$(SUBMAKE) $(VDIRFB)/ -f Vsmplfir.mk Vsmplfir__ALL.a
-
-$(VDIRFB)/Vboxcar__ALL.a: $(VDIRFB)/Vboxcar.mk
-	$(SUBMAKE) $(VDIRFB)/ -f Vboxcar.mk Vboxcar__ALL.a
+$(VDIRFB)/Vboxwrapper__ALL.a: $(VDIRFB)/Vboxwrapper.mk
+	$(SUBMAKE) $(VDIRFB)/ -f Vboxwrapper.mk Vboxwrapper__ALL.a
 
 .PHONY: clean
 clean:

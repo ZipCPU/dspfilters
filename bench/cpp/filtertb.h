@@ -44,16 +44,49 @@
 typedef	std::complex<double>	COMPLEX;
 #endif
 
-#define	FILTERTB_TEMPLATE template <class VA, const int DELAY, const int IW, const int OW, const int TW, const int NTAPS>
-#define	FILTERTB_CLS	FILTERTB<VA, DELAY, IW, OW, TW, NTAPS>
+#define	FILTERTB_TEMPLATE template <class VA>
+#define	FILTERTB_CLS	FILTERTB<VA>
 
 // template <class VA, const int DELAY, const int IW, const int OW, const int TW, const int NTAPS>
 FILTERTB_TEMPLATE class FILTERTB : public TESTB<VA> {
 	int	*m_hk;
+	int	m_delay, m_iw, m_ow, m_tw, m_ntaps;
+	FILE	*result_fp;
 public:
-	FILTERTB(void) { m_hk = NULL; }
+	FILTERTB(void) {
+		m_hk = NULL;
+		m_delay = 2;
+		m_iw    = 16;
+		m_ow    = 16;
+		m_tw    = 12;
+		m_ntaps = 128;
+		result_fp = NULL;
+	}
+	int	IW(void) const    { return m_iw; }
+	int	OW(void) const    { return m_ow; }
+	int	TW(void) const    { return m_tw; }
+	int	DELAY(void) const { return m_delay; }
+	int	NTAPS(void) const { return m_ntaps; }
+
+	int	IW(int k)    { m_iw = k;    return m_iw; }
+	int	OW(int k)    { m_ow = k;    return m_ow; }
+	int	TW(int k)    { m_tw = k;    return m_tw; }
+	int	DELAY(int k) { m_delay = k; return m_delay; }
+	int	NTAPS(int k) {
+		m_ntaps = k;
+		clear_cache();
+		return m_ntaps;
+	}
+
+	void	clear_cache(void) {
+		if (m_hk)
+			delete[] m_hk;
+		m_hk = NULL;
+	}
+
 	virtual	void	tick(void);
 	virtual	void	reset(void);
+	virtual	int	delay(void) const { return m_delay; };
 	virtual	void	apply(int nlen, int *data);
 	virtual	void	load(int  ntaps,  int *data);
 	// load(const char *fname);
@@ -67,6 +100,10 @@ public:
 	// void	check_linearity
 
 	int	operator[](const int tap);
+
+	void	record_results(const char *fname) {
+		result_fp = fopen(fname, "w");
+	}
 };
 
 #endif

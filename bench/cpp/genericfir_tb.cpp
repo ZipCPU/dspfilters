@@ -56,26 +56,31 @@ const	unsigned	TW = IW;
 const	unsigned	OW = IW+TW+7;
 const	unsigned	DELAY= NTAPS; // bits
 
-#define	GENERICFIR_TEMPLATE	Vgenericfir, DELAY, IW, OW, TW, NTAPS
-class	GENERICFIR_TB : public FILTERTB<GENERICFIR_TEMPLATE> {
+#define	BASECLASS	Vgenericfir
+class	GENERICFIR_TB : public FILTERTB<BASECLASS> {
 public:
 	GENERICFIR_TB(void) {
+		IW(::IW);
+		OW(::OW);
+		TW(::TW);
+		NTAPS(::NTAPS);
+		DELAY(::DELAY);
 	}
 
 	void	reset(void) {
-		FILTERTB<GENERICFIR_TEMPLATE>::reset();
+		FILTERTB<BASECLASS>::reset();
 	}
 
 	void	apply(int nlen, int *data) {
-		FILTERTB<GENERICFIR_TEMPLATE>::apply(nlen, data);
+		FILTERTB<BASECLASS>::apply(nlen, data);
 	}
 
 	void	testload(int nlen, int *data) {
-		FILTERTB<GENERICFIR_TEMPLATE>::testload(nlen, data);
+		FILTERTB<BASECLASS>::testload(nlen, data);
 	}
 
 	bool	test_bibo(void) {
-		return FILTERTB<GENERICFIR_TEMPLATE>::test_bibo();
+		return FILTERTB<BASECLASS>::test_bibo();
 	}
 
 	void	trace(const char *vcd_trace_file_name) {
