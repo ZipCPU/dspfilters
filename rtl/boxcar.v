@@ -85,7 +85,7 @@ module	boxcar(i_clk, i_reset, i_navg, i_ce, i_sample, o_result);
 	output	wire	[(OW-1):0]	o_result;// Output filter value
 
 	reg			full;
-	reg	[(LGMEM-1):0]	rdaddr, wraddr, navg;
+	reg	[(LGMEM-1):0]	rdaddr, wraddr;
 	reg	[(IW-1):0]	mem [0:((1<<LGMEM)-1)];
 	reg	[(IW-1):0]	preval, memval;
 	reg	[IW:0]	sub;
@@ -106,13 +106,6 @@ module	boxcar(i_clk, i_reset, i_navg, i_ce, i_sample, o_result);
 	// the input.
 	wire	[(LGMEM-1):0]	w_requested_navg;
 	assign w_requested_navg = (FIXED_NAVG) ? INITIAL_NAVG : i_navg;
-	initial	navg = INITIAL_NAVG;
-	always @(posedge i_clk)
-		if (FIXED_NAVG)
-			navg <= w_requested_navg;
-		else if (i_reset)
-			navg <= w_requested_navg;
-
 
 	// The read address.  We'll keep a running sum of values, and then need
 	// to subtract the value dropping off of the end of the summation. 
@@ -123,18 +116,13 @@ module	boxcar(i_clk, i_reset, i_navg, i_ce, i_sample, o_result);
 	// to initialize memory.  For this reason, we'll declare all memory
 	// values to be zero on reset, and only start using the memory once
 	// all values have been set.
-	initial	full   = 1'b0;
 	initial	rdaddr = 0;
 	always @(posedge i_clk)
 		if (i_reset)
-		begin
-			full <= 0;
 			rdaddr <= -w_requested_navg;
-		end else if (i_ce)
-		begin
-			rdaddr <= wraddr - navg + 1'b1;
-			full <= (full)||(rdaddr==0);
-		end
+		else if (i_ce)
+			// rdaddr <= wraddr - navg + 1'b1;
+			rdaddr <= rdaddr + 1'b1;
 
 	//
 	// Clock stage one
@@ -207,10 +195,13 @@ module	boxcar(i_clk, i_reset, i_navg, i_ce, i_sample, o_result);
 		// Besides, artificially increasing the number of bits doesn't
 		// really make sense
 	if (IW+LGMEM == OW)
+		// No rounding required, output is the acc(umulator)
 		assign	rounded = acc;
 	else if (IW+LGMEM == OW + 1)
+		// Need to drop one bit, round towards even
 		assign	rounded = acc + { {(OW){1'b0}}, acc[1] };
 	else // if (IW+LGMEM > OW)
+		// Drop more than one bit, rounding towards even
 		assign	rounded = acc + {
 				{(OW){1'b0}},
 				acc[(IW+LGMEM-OW)],
