@@ -21,3 +21,7 @@ cpudefs.h
 design.h
 octave-workspace
 core
+*.aux
+*.log
+*.dvi
+*.ps
