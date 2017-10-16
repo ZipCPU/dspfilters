@@ -72,10 +72,13 @@
 //
 module	boxcar(i_clk, i_reset, i_navg, i_ce, i_sample, o_result);
 	parameter	IW=16,		// Input bit-width
-			OW=(IW+LGMEM),	// Output bit-width
-			LGMEM=6;	// Size of the memory.
+			LGMEM=6,	// Size of the memory.
+			OW=(IW+LGMEM);	// Output bit-width
+	parameter [0:0]	FIXED_NAVG=1'b0; // True if number of averages is fixed
+	// Always assume we'll be averaging by the maximum amount, unless told
+	// otherwise.  Minus one, in two's complement, will become this number
+	// when interpreted as an unsigned number.
 	parameter	[(LGMEM-1):0]	INITIAL_NAVG= -1; // Initial avglen
-	parameter [0:0]	FIXED_NAVG=1'b0; // Tru if number of averages is fixd
 	input	wire			i_clk,	// Data clock
 					i_reset;// Positive synchronous reset
 	input	wire	[(LGMEM-1):0]	i_navg;	// Requested number of averages
@@ -214,7 +217,9 @@ module	boxcar(i_clk, i_reset, i_navg, i_ce, i_sample, o_result);
 	// IW+LGMEM bits.  So, let's take a clock and drop from IW+LGMEM bits
 	// to however many bits have been requested of us.
 	always @(posedge i_clk)
-		if (i_ce)
+		if (i_reset)
+			o_result <= 0;
+		else if (i_ce)
 			o_result <= rounded[(IW+LGMEM-1):(IW+LGMEM-OW)];
 
 
