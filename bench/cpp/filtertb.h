@@ -50,7 +50,7 @@ typedef	std::complex<double>	COMPLEX;
 // template <class VA, const int DELAY, const int IW, const int OW, const int TW, const int NTAPS>
 FILTERTB_TEMPLATE class FILTERTB : public TESTB<VA> {
 	int	*m_hk;
-	int	m_delay, m_iw, m_ow, m_tw, m_ntaps;
+	int	m_delay, m_iw, m_ow, m_tw, m_ntaps, m_nclks;
 	FILE	*result_fp;
 public:
 	FILTERTB(void) {
@@ -60,6 +60,7 @@ public:
 		m_ow    = 16;
 		m_tw    = 12;
 		m_ntaps = 128;
+		m_nclks = 1;
 		result_fp = NULL;
 	}
 	int	IW(void) const    { return m_iw; }
@@ -67,6 +68,7 @@ public:
 	int	TW(void) const    { return m_tw; }
 	int	DELAY(void) const { return m_delay; }
 	int	NTAPS(void) const { return m_ntaps; }
+	int	CKPCE(void) const { return m_nclks; }
 
 	int	IW(int k)    { m_iw = k;    return m_iw; }
 	int	OW(int k)    { m_ow = k;    return m_ow; }
@@ -76,6 +78,12 @@ public:
 		m_ntaps = k;
 		clear_cache();
 		return m_ntaps;
+	}
+	int	CKPCE(int k) {
+		m_nclks = k;
+		if (m_nclks <= 1)
+			m_nclks=1;
+		return m_nclks;
 	}
 
 	void	clear_cache(void) {

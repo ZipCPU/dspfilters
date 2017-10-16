@@ -162,8 +162,9 @@ int	main(int argc, char **argv) {
 	}
 
 	{
-		// tb->testload(NTAPS-1, NULL);		// This works
-		tb->testload(NTAPS/2, NULL);		// This doesn't (yet)
+		// tb->testload(NTAPS-1, NULL);		//
+		tb->testload(NTAPS/2, NULL);		//
+		// tb->testload(4, NULL);		//
 
 		// tb->record_results("boxcar.32t");
 

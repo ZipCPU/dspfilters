@@ -167,7 +167,8 @@ FILTERTB_TEMPLATE void	FILTERTB_CLS::response(int nfreq,
 		COMPLEX *rvec, double mag) {
 	int	nlen = NTAPS();
 	int	dlen = nlen + delay() + 2*NTAPS(), doffset = delay()+NTAPS();
-	int	*data = new int[dlen];
+	int	*data = new int[dlen],
+		*input= new int[dlen];
 
 	// Nh tap filter
 	// Nv length vector
@@ -183,22 +184,12 @@ FILTERTB_TEMPLATE void	FILTERTB_CLS::response(int nfreq,
 		COMPLEX	acc = 0.;
 
 		theta = 0;
-		for(int j=NTAPS(); j<NTAPS()+nlen; j++) {
+		for(int j=0; j<dlen; j++) {
 			double	dv = mag * cos(theta);
 
 			theta += dtheta;
 			data[j] = dv;
-		}
-
-		for(int j=NTAPS()+nlen; j<dlen; j++)
-			data[j] = 0;
-
-		theta = -dtheta;
-		for(int j=NTAPS()-1; j>= 0; j--) {
-			double	dv = mag * cos(theta);
-
-			theta -= dtheta;
-			data[j] = dv;
+			input[j] = dv;
 		}
 
 		apply(dlen, data);
@@ -208,7 +199,7 @@ FILTERTB_TEMPLATE void	FILTERTB_CLS::response(int nfreq,
 			double	cs = cos(theta) / mag,
 				sn = sin(theta) / mag;
 
-			theta += dtheta;
+			theta -= dtheta;
 
 			real(acc) += cs * data[j+doffset];
 			imag(acc) += sn * data[j+doffset];
@@ -219,22 +210,12 @@ FILTERTB_TEMPLATE void	FILTERTB_CLS::response(int nfreq,
 		// frequency
 		if (i > 0) {
 			theta = 0.0;
-			for(int j=NTAPS(); j<NTAPS()+nlen; j++) {
+			for(int j=0; j<dlen; j++) {
 				double	dv = mag * sin(theta);
 
 				theta += dtheta;
 				data[j] = dv;
-			}
-			for(int j=NTAPS()+nlen; j<dlen; j++)
-				data[j] = 0;
-
-
-			theta = -dtheta;
-			for(int j=NTAPS()-1; j>=0; j--) {
-				double	dv = mag * sin(theta);
-
-				theta -= dtheta;
-				data[j] = dv;
+				input[j] = dv;
 			}
 
 			apply(dlen, data);
@@ -244,9 +225,9 @@ FILTERTB_TEMPLATE void	FILTERTB_CLS::response(int nfreq,
 				double	cs = cos(theta) / mag,
 					sn = sin(theta) / mag;
 
-				theta += dtheta;
+				theta -= dtheta;
 
-				real(acc) += sn * data[j+doffset];
+				real(acc) -= sn * data[j+doffset];
 				imag(acc) += cs * data[j+doffset];
 			}
 
@@ -257,6 +238,7 @@ FILTERTB_TEMPLATE void	FILTERTB_CLS::response(int nfreq,
 	}
 
 	delete[] data;
+	delete[] input;
 
 	{
 		FILE* fp;
