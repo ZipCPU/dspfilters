@@ -70,10 +70,6 @@ int	main(int argc, char **argv) {
 #define	TRACE_CLOSE
 #endif
 
-	clocks = 0;
-	ones = 0;
-	nout = 0;
-
 	// reset our core before cycling it
 	tb.i_clk   = 1;
 	tb.i_reset = 1;
