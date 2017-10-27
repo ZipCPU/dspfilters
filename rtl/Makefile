@@ -1,4 +1,4 @@
-################################################################################
+###############################################################################
 ##
 ## Filename:	Makefile
 ##
@@ -46,16 +46,19 @@ VERILATOR := verilator
 VFLAGS := -O3 -Wall -MMD -trace -cc
 SUBMAKE := make --no-print-directory -C
 
-.PHONY: all genericfir symmetricfir slowfil
-all: smplfir iiravg genericfir fastfir boxcar # symmetricfir slowfil
+.PHONY: all genericfir symfil slowfil
+all: smplfir iiravg genericfir fastfir boxcar lfsr_gal lfsr_fib # symfil slowfil
 
 genericfir:	$(VDIRFB)/Vgenericfir__ALL.a
 fastfir:	$(VDIRFB)/Vfastfir__ALL.a
-symmetricfir:	$(VDIRFB)/Vsymmetricfir__ALL.a
+symfil:		$(VDIRFB)/Vsymfil__ALL.a
 slowfil:	$(VDIRFB)/Vslowfil__ALL.a
 smplfir:	$(VDIRFB)/Vsmplfir__ALL.a
 iiravg:		$(VDIRFB)/Viiravg__ALL.a
 boxcar:		$(VDIRFB)/Vboxcar__ALL.a
+lfsr_gal:	$(VDIRFB)/Vlfsr_gal__ALL.a
+lfsr_fib:	$(VDIRFB)/Vlfsr_fib__ALL.a
+lfsr:		$(VDIRFB)/Vlfsr__ALL.a
 
 $(VDIRFB)/V%.cpp $(VDIRFB)/V%.h $(VDIRFB)/V%.mk: $(FBDIR)/%.v
 	$(VERILATOR) $(VFLAGS) $*.v
@@ -69,8 +72,8 @@ $(VDIRFB)/Vgenericfir__ALL.a: $(VDIRFB)/Vgenericfir.mk
 $(VDIRFB)/Vfastfir__ALL.a: $(VDIRFB)/Vfastfir.mk
 	$(SUBMAKE) $(VDIRFB)/ -f Vfastfir.mk Vfastfir__ALL.a
 
-$(VDIRFB)/Vsymmetricfir__ALL.a: $(VDIRFB)/Vsymmetricfir.mk
-	$(SUBMAKE) $(VDIRFB)/ -f Vsymmetricfir.mk Vsymmetricfir__ALL.a
+$(VDIRFB)/Vsymfil__ALL.a: $(VDIRFB)/Vsymfil.mk
+	$(SUBMAKE) $(VDIRFB)/ -f Vsymfil.mk Vsymfil__ALL.a
 
 $(VDIRFB)/Vslowfil__ALL.a: $(VDIRFB)/Vslowfil.mk
 	$(SUBMAKE) $(VDIRFB)/ -f Vslowfil.mk Vslowfil__ALL.a
@@ -83,6 +86,15 @@ $(VDIRFB)/Vsmplfir__ALL.a: $(VDIRFB)/Vsmplfir.mk
 
 $(VDIRFB)/Vboxcar__ALL.a: $(VDIRFB)/Vboxcar.mk
 	$(SUBMAKE) $(VDIRFB)/ -f Vboxcar.mk Vboxcar__ALL.a
+
+$(VDIRFB)/Vlfsr_gal__ALL.a: $(VDIRFB)/Vlfsr_gal.mk
+	$(SUBMAKE) $(VDIRFB)/ -f Vlfsr_gal.mk Vlfsr_gal__ALL.a
+
+$(VDIRFB)/Vlfsr_fib__ALL.a: $(VDIRFB)/Vlfsr_fib.mk
+	$(SUBMAKE) $(VDIRFB)/ -f Vlfsr_fib.mk Vlfsr_fib__ALL.a
+
+$(VDIRFB)/Vlfsr__ALL.a: $(VDIRFB)/Vlfsr.mk
+	$(SUBMAKE) $(VDIRFB)/ -f Vlfsr.mk Vlfsr__ALL.a
 
 .PHONY: clean
 clean:
