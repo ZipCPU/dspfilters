@@ -37,7 +37,7 @@
 //
 #include "filtertb.h"
 
-int	sbits(uint32_t val, int b) {
+static int	sbits(uint32_t val, int b) {
 	int	s;
 
 	s = (val << (sizeof(int)*8-b));
@@ -45,128 +45,218 @@ int	sbits(uint32_t val, int b) {
 	return	s;
 }
 
-FILTERTB_TEMPLATE void	FILTERTB_CLS::tick(void) {
+static unsigned	ubits(uint32_t val, int b) {
+	return	val &= (1<<b)-1;
+}
+
+template<class VFLTR> void	FILTERTB<VFLTR>::tick(void) {
 	bool	ce;
 	int	vec[2];
 
-	ce = (TESTB<VA>::m_core->i_ce);
-	vec[0] = sbits(TESTB<VA>::m_core->i_sample, IW());
+	ce = (TESTB<VFLTR>::m_core->i_ce);
+	vec[0] = sbits(TESTB<VFLTR>::m_core->i_sample, IW());
 
-	TESTB<VA>::tick();
+	TESTB<VFLTR>::tick();
 
-	vec[1] = sbits(TESTB<VA>::m_core->o_result, OW());
+	vec[1] = sbits(TESTB<VFLTR>::m_core->o_result, OW());
 
 	if ((ce)&&(result_fp))
 		fwrite(vec, sizeof(int), 2, result_fp);
 }
 
-FILTERTB_TEMPLATE void	FILTERTB_CLS::reset(void) {
-	TESTB<VA>::m_core->i_tap   = 0;
-	TESTB<VA>::m_core->i_sample= 0;
-	TESTB<VA>::m_core->i_ce    = 0;
-	TESTB<VA>::m_core->i_tap_wr= 0;
+template<class VFLTR> void	FILTERTB<VFLTR>::reset(void) {
+	TESTB<VFLTR>::m_core->i_tap   = 0;
+	TESTB<VFLTR>::m_core->i_sample= 0;
+	TESTB<VFLTR>::m_core->i_ce    = 0;
+	TESTB<VFLTR>::m_core->i_tap_wr= 0;
 
-	TESTB<VA>::reset();
+	TESTB<VFLTR>::reset();
 
-	TESTB<VA>::m_core->i_reset = 0;
+	TESTB<VFLTR>::m_core->i_reset = 0;
 }
 
-FILTERTB_TEMPLATE void	FILTERTB_CLS::apply(int nlen, int *data) {
+template<class VFLTR> void	FILTERTB<VFLTR>::apply(int nlen, int *data) {
 // printf("FILTERTB::apply(%d, ...)\n", nlen);
-	TESTB<VA>::m_core->i_reset  = 0;
-	TESTB<VA>::m_core->i_tap_wr = 0;
-	TESTB<VA>::m_core->i_ce     = 0;
+	TESTB<VFLTR>::m_core->i_reset  = 0;
+	TESTB<VFLTR>::m_core->i_tap_wr = 0;
+	TESTB<VFLTR>::m_core->i_ce     = 0;
 	tick();
-	TESTB<VA>::m_core->i_ce     = 1;
 	for(int i=0; i<nlen; i++) {
-		int	v;
+		// Make sure the CE line is high
+		TESTB<VFLTR>::m_core->i_ce     = 1;
 
 		// Strip off any excess bits
-		v = data[i];
-		v &= (1<<IW())-1;
-		TESTB<VA>::m_core->i_sample= v;
+		TESTB<VFLTR>::m_core->i_sample= ubits(data[i], IW());
 
 		// Apply the filter
 		tick();
 
-		v = TESTB<VA>::m_core->o_result;
 		// Sign extend the result
-		v <<= (8*sizeof(v)-OW());
-		v >>= (8*sizeof(v)-OW());
-		data[i] = v;
+		data[i] = sbits(TESTB<VFLTR>::m_core->o_result, OW());
+
+		if (m_nclks > 1) {
+			TESTB<VFLTR>::m_core->i_ce     = 0;
+			for(int k=1; k<m_nclks; k++)
+				tick();
+		}
 	}
-	TESTB<VA>::m_core->i_ce     = 0;
+	TESTB<VFLTR>::m_core->i_ce     = 0;
 }
 
-FILTERTB_TEMPLATE void	FILTERTB_CLS::load(int  ntaps,  int *data) {
+template<class VFLTR> void	FILTERTB<VFLTR>::load(int  ntaps,  int *data) {
 // printf("FILTERTB::load(%d, ...)\n", ntaps);
-	TESTB<VA>::m_core->i_reset = 0;
-	TESTB<VA>::m_core->i_ce    = 0;
-	TESTB<VA>::m_core->i_tap_wr= 1;
+	TESTB<VFLTR>::m_core->i_reset = 0;
+	TESTB<VFLTR>::m_core->i_ce    = 0;
+	TESTB<VFLTR>::m_core->i_tap_wr= 1;
 	for(int i=0; i<ntaps; i++) {
-		int	v;
-
 		// Strip off any excess bits
-		v = data[i];
-		v &= (1<<m_tw)-1;
-		TESTB<VA>::m_core->i_tap = v;
+		TESTB<VFLTR>::m_core->i_tap = ubits(data[i], TW());
 
 		// Apply the filter
 		tick();
 	}
-	TESTB<VA>::m_core->i_tap_wr= 0;
+	TESTB<VFLTR>::m_core->i_tap_wr= 0;
 
 	clear_cache();
 }
 
-FILTERTB_TEMPLATE void	FILTERTB_CLS::test(int  nlen, int *data) {
+template<class VFLTR> void	FILTERTB<VFLTR>::test(int  nlen, int *data) {
 	const	bool	debug = false;
 	assert(nlen > 0);
 
 	reset();
 
-	TESTB<VA>::m_core->i_reset  = 0;
-	TESTB<VA>::m_core->i_tap_wr = 0;
-	TESTB<VA>::m_core->i_tap    = 0;
-	TESTB<VA>::m_core->i_ce = 1;
+	TESTB<VFLTR>::m_core->i_reset  = 0;
+	TESTB<VFLTR>::m_core->i_tap_wr = 0;
+	TESTB<VFLTR>::m_core->i_ce = 1;
 
-	int	tstcounts = nlen+delay();
+	int	tstcounts = nlen+DELAY();
 	for(int i=0; i<tstcounts; i++) {
 		int	v;
 
+		TESTB<VFLTR>::m_core->i_ce = 1;
 		// Strip off any excess bits
 		if (i >= nlen)
-			TESTB<VA>::m_core->i_sample = v = 0;
-		else {
-			v = data[i];
-			v &= (1<<IW())-1;
-			TESTB<VA>::m_core->i_sample = v;
-		}
+			TESTB<VFLTR>::m_core->i_sample = v = 0;
+		else
+			TESTB<VFLTR>::m_core->i_sample = ubits(data[i], IW());
 
 		if (debug)
-			printf("%3d, %3d, %d : Input : %5d[%6x] ", i, delay(), nlen, v,v );
+			printf("%3d, %3d, %d : Input : %5d[%6x] ", i, DELAY(), nlen, v,v );
 
 		// Apply the filter
 		tick();
 
-		v = TESTB<VA>::m_core->o_result;
 		// Sign extend the result
-		v <<= (8*sizeof(v)-OW());
-		v >>= (8*sizeof(v)-OW());
+		v = sbits(TESTB<VFLTR>::m_core->o_result, OW());
 
-		if (i >= delay()) {
+		if (i >= DELAY()) {
 			if (debug) printf("Read    :%8d[%8x]\n", v, v);
-			data[i-delay()] = v;
+			data[i-DELAY()] = v;
 		} else if (debug)
 			printf("Discard : %2d\n", v);
+
+		// Deal with any filters requiring multiple clocks
+		TESTB<VFLTR>::m_core->i_ce = 0;
+		for(int k=1; k<m_nclks; k++)
+			tick();
 	}
-	TESTB<VA>::m_core->i_ce = 0;
+	TESTB<VFLTR>::m_core->i_ce = 0;
 }
 
-FILTERTB_TEMPLATE void	FILTERTB_CLS::response(int nfreq,
+template<class VFLTR> int	FILTERTB<VFLTR>::operator[](const int tap) {
+
+	if ((tap < 0)||(tap >= 2*NTAPS()))
+		return 0;
+	else if (!m_hk) {
+		int	nlen = 2*NTAPS();
+		m_hk = new int[nlen];
+
+		// Create an input vector with a single impulse in it
+		for(int i=0; i<nlen; i++)
+			m_hk[i] = 0;
+		m_hk[0] = -(1<<(IW()-1));
+
+		// Apply the filter to the impulse vector
+		test(nlen, m_hk);
+
+		// Set our m_hk vector based upon the results
+		for(int i=0; i<nlen; i++) {
+			int	shift;
+			shift = IW()-1;
+			m_hk[i] >>= shift;
+			m_hk[i] = -m_hk[i];
+		}
+	}
+
+	// if (m_hk[tap] != 0) printf("Hk[%4d] = %8d\n", tap, m_hk[tap]);
+	return m_hk[tap];
+}
+
+template<class VFLTR> void	FILTERTB<VFLTR>::testload(int nlen, int *data) {
+// printf("FILTERTB::testload(%d, ...)\n", nlen);
+	load(nlen, data);
+	reset();
+
+	for(int k=0; k<nlen; k++) {
+		int	m = (*this)[k];
+		if (data[k] != m)
+			printf("Data[k] = %d != (*this)[k] = %d\n", data[k], m);
+		assert(data[k] == m);
+	}
+	for(int k=nlen; k<2*DELAY(); k++)
+		assert(0 == (*this)[k]);
+}
+
+template<class VFLTR> bool	FILTERTB<VFLTR>::test_overflow(void) {
+// printf("TESTING-BIBO\n");
+	int	nlen = 2*NTAPS();
+	int	*input  = new int[nlen],
+		*output = new int[nlen];
+	int	maxv = (1<<(IW()-1))-1;
+	bool	pass = true, tested = false;
+
+	// maxv = 1;
+
+	for(int k=0; k<nlen; k++) {
+		// input[v] * (*this)[(NTAPS-1)-v]
+		if ((*this)[NTAPS()-1-k] < 0)
+			input[k] = -maxv;
+		else
+			input[k] =  maxv;
+		output[k]= input[k];
+	}
+
+	test(nlen, output);
+
+	for(int k=0; k<nlen; k++) {
+		long	acc = 0;
+		bool	all = true;
+		for(int v = 0; v<NTAPS(); v++) {
+			if (k-v >= 0) {
+				acc += input[k-v] * (*this)[v];
+				if (acc < 0)
+					all = false;
+			} else
+				all = false;
+		}
+
+		if (all)
+			tested = true;
+
+		pass = (pass)&&(output[k] == acc);
+		assert(output[k] == acc);
+	}
+
+	delete[] input;
+	delete[] output;
+	return (pass)&&(tested);
+}
+
+template<class VFLTR> void	FILTERTB<VFLTR>::response(int nfreq,
 		COMPLEX *rvec, double mag) {
 	int	nlen = NTAPS();
-	int	dlen = nlen + delay() + 2*NTAPS(), doffset = delay()+NTAPS();
+	int	dlen = nlen + DELAY() + 2*NTAPS(), doffset = DELAY()+NTAPS();
 	int	*data = new int[dlen],
 		*input= new int[dlen];
 
@@ -248,96 +338,7 @@ FILTERTB_TEMPLATE void	FILTERTB_CLS::response(int nfreq,
 	}
 }
 
-FILTERTB_TEMPLATE int	FILTERTB_CLS::operator[](const int tap) {
-
-	if ((tap < 0)||(tap >= 2*NTAPS()))
-		return 0;
-	else if (!m_hk) {
-		int	nlen = 2*NTAPS();
-		m_hk = new int[nlen];
-
-		// Create an input vector with a single impulse in it
-		for(int i=0; i<nlen; i++)
-			m_hk[i] = 0;
-		m_hk[0] = -(1<<(IW()-2));
-
-		// Apply the filter to the impulse vector
-		test(nlen, m_hk);
-
-		// Set our m_hk vector based upon the results
-		for(int i=0; i<nlen; i++) {
-			int	shift;
-			shift = IW()-2;
-			m_hk[i] >>= shift;
-			m_hk[i] = -m_hk[i];
-		}
-	}
-
-	// if (m_hk[tap] != 0) printf("Hk[%4d] = %8d\n", tap, m_hk[tap]);
-	return m_hk[tap];
-}
-
-FILTERTB_TEMPLATE void	FILTERTB_CLS::testload(int nlen, int *data) {
-// printf("FILTERTB::testload(%d, ...)\n", nlen);
-	load(nlen, data);
-	reset();
-
-	for(int k=0; k<nlen; k++) {
-		int	m = (*this)[k];
-		if (data[k] != m)
-			printf("Data[k] = %d != (*this)[k] = %d\n", data[k], m);
-		assert(data[k] == m);
-	}
-	for(int k=nlen; k<2*DELAY(); k++)
-		assert(0 == (*this)[k]);
-}
-
-FILTERTB_TEMPLATE bool	FILTERTB_CLS::test_bibo(void) {
-// printf("TESTING-BIBO\n");
-	int	nlen = 2*NTAPS();
-	int	*input  = new int[nlen],
-		*output = new int[nlen];
-	int	maxv = (1<<(IW()-1))-1;
-	bool	pass = true, tested = false;
-
-	// maxv = 1;
-
-	for(int k=0; k<nlen; k++) {
-		// input[v] * (*this)[(NTAPS-1)-v]
-		if ((*this)[NTAPS()-1-k] < 0)
-			input[k] = -maxv;
-		else
-			input[k] =  maxv;
-		output[k]= input[k];
-	}
-
-	test(nlen, output);
-
-	for(int k=0; k<nlen; k++) {
-		long	acc = 0;
-		bool	all = true;
-		for(int v = 0; v<NTAPS(); v++) {
-			if (k-v >= 0) {
-				acc += input[k-v] * (*this)[v];
-				if (acc < 0)
-					all = false;
-			} else
-				all = false;
-		}
-
-		if (all)
-			tested = true;
-
-		pass = (pass)&&(output[k] == acc);
-		assert(output[k] == acc);
-	}
-
-	delete[] input;
-	delete[] output;
-	return (pass)&&(tested);
-}
-
-FILTERTB_TEMPLATE void	FILTERTB_CLS::measure_lowpass(double &fp, double &fs,
+template<class VFLTR> void FILTERTB<VFLTR>::measure_lowpass(double &fp, double &fs,
 			double &depth, double &ripple) {
 	const	int	NLEN = 16*NTAPS();
 	COMPLEX	*data = new COMPLEX[NLEN];

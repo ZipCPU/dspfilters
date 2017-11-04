@@ -130,8 +130,8 @@ public:
 		}
 	}
 
-	bool	test_bibo(void) {
-		return PARENTTB::test_bibo();
+	bool	test_overflow(void) {
+		return PARENTTB::test_overflow();
 	}
 
 	void	trace(const char *vcd_trace_file_name) {
@@ -158,7 +158,7 @@ int	main(int argc, char **argv) {
 	printf("Test #%3d /%3d\n", NTAPS+1, NTAPS+2);
 	for(unsigned i=1; i<NTAPS; i++) {
 		tb->testload(i, NULL);
-		tb->test_bibo();
+		tb->test_overflow();
 	}
 
 	{

@@ -79,8 +79,8 @@ public:
 		FILTERTB<BASECLASS>::testload(nlen, data);
 	}
 
-	bool	test_bibo(void) {
-		return FILTERTB<BASECLASS>::test_bibo();
+	bool	test_overflow(void) {
+		return FILTERTB<BASECLASS>::test_overflow();
 	}
 
 	void	trace(const char *vcd_trace_file_name) {
@@ -116,7 +116,7 @@ int	main(int argc, char **argv) {
 
 		tb->testload(NTAPS, tapvec);
 
-		tb->test_bibo();
+		tb->test_overflow();
 	}
 
 	//
@@ -152,7 +152,7 @@ int	main(int argc, char **argv) {
 	for(unsigned i=0; i<NTAPS; i++)
 		assert(ivec[i] == ((int)i+1)*IMPULSE*TAPVALUE);
 
-	assert(tb->test_bibo());
+	assert(tb->test_overflow());
 
 	{
 		double fp, fs, depth, ripple;
