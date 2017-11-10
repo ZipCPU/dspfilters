@@ -47,7 +47,7 @@ VFLAGS := -O3 -Wall -MMD -trace -cc
 SUBMAKE := make --no-print-directory -C
 
 .PHONY: all genericfir symfil slowfil
-all: smplfir iiravg genericfir fastfir boxcar lfsr_gal lfsr_fib # symfil slowfil
+all: smplfir iiravg genericfir fastfir boxcar lfsr_gal lfsr_fib delayw # symfil slowfil
 
 genericfir:	$(VDIRFB)/Vgenericfir__ALL.a
 fastfir:	$(VDIRFB)/Vfastfir__ALL.a
@@ -59,6 +59,7 @@ boxcar:		$(VDIRFB)/Vboxcar__ALL.a
 lfsr_gal:	$(VDIRFB)/Vlfsr_gal__ALL.a
 lfsr_fib:	$(VDIRFB)/Vlfsr_fib__ALL.a
 lfsr:		$(VDIRFB)/Vlfsr__ALL.a
+delayw:		$(VDIRFB)/Vdelayw__ALL.a
 
 $(VDIRFB)/V%.cpp $(VDIRFB)/V%.h $(VDIRFB)/V%.mk: $(FBDIR)/%.v
 	$(VERILATOR) $(VFLAGS) $*.v
@@ -95,6 +96,9 @@ $(VDIRFB)/Vlfsr_fib__ALL.a: $(VDIRFB)/Vlfsr_fib.mk
 
 $(VDIRFB)/Vlfsr__ALL.a: $(VDIRFB)/Vlfsr.mk
 	$(SUBMAKE) $(VDIRFB)/ -f Vlfsr.mk Vlfsr__ALL.a
+
+$(VDIRFB)/Vdelayw__ALL.a: $(VDIRFB)/Vdelayw.mk
+	$(SUBMAKE) $(VDIRFB)/ -f Vdelayw.mk Vdelayw__ALL.a
 
 .PHONY: clean
 clean:

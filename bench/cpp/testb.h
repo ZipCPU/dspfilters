@@ -15,7 +15,7 @@
 // Copyright (C) 2017, Gisselquist Technology, LLC
 //
 // This program is free software (firmware): you can redistribute it and/or
-// modify it under the terms of  the GNU General Public License as published
+// modify it under the terms of the GNU General Public License as published
 // by the Free Software Foundation, either version 3 of the License, or (at
 // your option) any later version.
 //
@@ -41,6 +41,7 @@
 
 #include <stdio.h>
 #include <stdint.h>
+#include <assert.h>
 #include <verilated_vcd_c.h>
 
 #define	TBASSERT(TB,A) do { if (!(A)) { (TB).closetrace(); } assert(A); } while(0);
