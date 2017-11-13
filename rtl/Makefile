@@ -47,7 +47,7 @@ VFLAGS := -O3 -Wall -MMD -trace -cc
 SUBMAKE := make --no-print-directory -C
 
 .PHONY: all genericfir symfil slowfil
-all: smplfir iiravg genericfir fastfir boxcar lfsr_gal lfsr_fib delayw # symfil slowfil
+all: smplfir iiravg genericfir fastfir boxcar lfsr_gal lfsr_fib delayw lfsr # symfil slowfil
 
 genericfir:	$(VDIRFB)/Vgenericfir__ALL.a
 fastfir:	$(VDIRFB)/Vfastfir__ALL.a

@@ -37,21 +37,21 @@
 //
 #include "filtertb.h"
 
-static int	sbits(uint32_t val, int b) {
-	int	s;
+static long	sbits(uint64_t val, int b) {
+	long	s;
 
-	s = (val << (sizeof(int)*8-b));
-	s >>= (sizeof(int)*8-b);
+	s = (val << (sizeof(val)*8-b));
+	s >>= (sizeof(val)*8-b);
 	return	s;
 }
 
-static unsigned	ubits(uint32_t val, int b) {
+static unsigned	long ubits(uint64_t val, int b) {
 	return	val &= (1<<b)-1;
 }
 
 template<class VFLTR> void	FILTERTB<VFLTR>::tick(void) {
 	bool	ce;
-	int	vec[2];
+	long	vec[2];
 
 	ce = (TESTB<VFLTR>::m_core->i_ce);
 	vec[0] = sbits(TESTB<VFLTR>::m_core->i_sample, IW());
@@ -61,7 +61,7 @@ template<class VFLTR> void	FILTERTB<VFLTR>::tick(void) {
 	vec[1] = sbits(TESTB<VFLTR>::m_core->o_result, OW());
 
 	if ((ce)&&(result_fp))
-		fwrite(vec, sizeof(int), 2, result_fp);
+		fwrite(vec, sizeof(long), 2, result_fp);
 }
 
 template<class VFLTR> void	FILTERTB<VFLTR>::reset(void) {
@@ -75,7 +75,7 @@ template<class VFLTR> void	FILTERTB<VFLTR>::reset(void) {
 	TESTB<VFLTR>::m_core->i_reset = 0;
 }
 
-template<class VFLTR> void	FILTERTB<VFLTR>::apply(int nlen, int *data) {
+template<class VFLTR> void	FILTERTB<VFLTR>::apply(int nlen, long *data) {
 // printf("FILTERTB::apply(%d, ...)\n", nlen);
 	TESTB<VFLTR>::m_core->i_reset  = 0;
 	TESTB<VFLTR>::m_core->i_tap_wr = 0;
@@ -103,7 +103,7 @@ template<class VFLTR> void	FILTERTB<VFLTR>::apply(int nlen, int *data) {
 	TESTB<VFLTR>::m_core->i_ce     = 0;
 }
 
-template<class VFLTR> void	FILTERTB<VFLTR>::load(int  ntaps,  int *data) {
+template<class VFLTR> void	FILTERTB<VFLTR>::load(int  ntaps, long *data) {
 // printf("FILTERTB::load(%d, ...)\n", ntaps);
 	TESTB<VFLTR>::m_core->i_reset = 0;
 	TESTB<VFLTR>::m_core->i_ce    = 0;
@@ -120,7 +120,7 @@ template<class VFLTR> void	FILTERTB<VFLTR>::load(int  ntaps,  int *data) {
 	clear_cache();
 }
 
-template<class VFLTR> void	FILTERTB<VFLTR>::test(int  nlen, int *data) {
+template<class VFLTR> void	FILTERTB<VFLTR>::test(int  nlen, long *data) {
 	const	bool	debug = false;
 	assert(nlen > 0);
 
@@ -170,7 +170,7 @@ template<class VFLTR> int	FILTERTB<VFLTR>::operator[](const int tap) {
 		return 0;
 	else if (!m_hk) {
 		int	nlen = 2*NTAPS();
-		m_hk = new int[nlen];
+		m_hk = new long[nlen];
 
 		// Create an input vector with a single impulse in it
 		for(int i=0; i<nlen; i++)
@@ -193,7 +193,7 @@ template<class VFLTR> int	FILTERTB<VFLTR>::operator[](const int tap) {
 	return m_hk[tap];
 }
 
-template<class VFLTR> void	FILTERTB<VFLTR>::testload(int nlen, int *data) {
+template<class VFLTR> void	FILTERTB<VFLTR>::testload(int nlen, long *data) {
 // printf("FILTERTB::testload(%d, ...)\n", nlen);
 	load(nlen, data);
 	reset();
@@ -201,7 +201,7 @@ template<class VFLTR> void	FILTERTB<VFLTR>::testload(int nlen, int *data) {
 	for(int k=0; k<nlen; k++) {
 		int	m = (*this)[k];
 		if (data[k] != m)
-			printf("Data[k] = %d != (*this)[k] = %d\n", data[k], m);
+			printf("Data[k] = %ld != (*this)[k] = %d\n", data[k], m);
 		assert(data[k] == m);
 	}
 	for(int k=nlen; k<2*DELAY(); k++)
@@ -211,9 +211,9 @@ template<class VFLTR> void	FILTERTB<VFLTR>::testload(int nlen, int *data) {
 template<class VFLTR> bool	FILTERTB<VFLTR>::test_overflow(void) {
 // printf("TESTING-BIBO\n");
 	int	nlen = 2*NTAPS();
-	int	*input  = new int[nlen],
-		*output = new int[nlen];
-	int	maxv = (1<<(IW()-1))-1;
+	long	*input  = new long[nlen],
+		*output = new long[nlen];
+	long	maxv = (1<<(IW()-1))-1;
 	bool	pass = true, tested = false;
 
 	// maxv = 1;
@@ -254,11 +254,15 @@ template<class VFLTR> bool	FILTERTB<VFLTR>::test_overflow(void) {
 }
 
 template<class VFLTR> void	FILTERTB<VFLTR>::response(int nfreq,
-		COMPLEX *rvec, double mag) {
+		COMPLEX *rvec, double mag, const char *fname) {
 	int	nlen = NTAPS();
-	int	dlen = nlen + DELAY() + 2*NTAPS(), doffset = DELAY()+NTAPS();
-	int	*data = new int[dlen],
-		*input= new int[dlen];
+	long	*data = new long[nlen];
+	double	df = 1./nfreq / 2.;
+	COMPLEX	hk;
+	const bool	debug= true;
+
+for(int i=0; i<nlen; i++)
+	printf("h[%3d] = %6d\n", i, (*this)[i]);
 
 	// Nh tap filter
 	// Nv length vector
@@ -269,70 +273,64 @@ template<class VFLTR> void	FILTERTB<VFLTR>::response(int nfreq,
 	mag = mag * ((1<<(IW()-1))-1);
 
 	for(int i=0; i<nfreq; i++) {
-		double	dtheta = 2.0 * M_PI * i / (double)nfreq / 2.0,
+		double	dtheta = 2.0 * M_PI * i * df,
 			theta=0.;
-		COMPLEX	acc = 0.;
+		hk = 0;
 
-		theta = 0;
-		for(int j=0; j<dlen; j++) {
+		theta = 0.;
+		if (debug)
+			for(int j=0; j<nlen; j++) {
+				double	dv = cos(theta);
+				real(hk) += dv * (*this)[j];
+				theta -= dtheta;
+			}
+
+		theta = -(NTAPS()-1) * dtheta;
+		for(int j=0; j<nlen; j++) {
 			double	dv = mag * cos(theta);
 
 			theta += dtheta;
 			data[j] = dv;
-			input[j] = dv;
 		}
 
-		apply(dlen, data);
-
-		theta = 0.0;
-		for(int j=0; j<nlen; j++) {
-			double	cs = cos(theta) / mag,
-				sn = sin(theta) / mag;
-
-			theta -= dtheta;
-
-			real(acc) += cs * data[j+doffset];
-			imag(acc) += sn * data[j+doffset];
-		}
+		test(nlen, data);
+		real(rvec[i])  = data[nlen-1] / mag;
 
 		// Repeat what should produce the same response, but using
 		// a 90 degree phase offset.  Do this for all but the zero
 		// frequency
 		if (i > 0) {
-			theta = 0.0;
-			for(int j=0; j<dlen; j++) {
+			theta = 0.;
+			if (debug)
+				for(int j=0; j<2*nlen; j++) {
+					double	dv = sin(theta);
+					imag(hk) += dv * (*this)[j];
+					theta -= dtheta;
+				}
+
+			theta = -(NTAPS()-1) * dtheta;
+			for(int j=0; j<nlen; j++) {
 				double	dv = mag * sin(theta);
 
 				theta += dtheta;
 				data[j] = dv;
-				input[j] = dv;
 			}
 
-			apply(dlen, data);
+			test(nlen, data);
+			imag(rvec[i])  = data[nlen-1] / mag;
+		}
 
-			theta = 0.0;
-			for(int j=0; j<nlen; j++) {
-				double	cs = cos(theta) / mag,
-					sn = sin(theta) / mag;
-
-				theta -= dtheta;
-
-				real(acc) -= sn * data[j+doffset];
-				imag(acc) += cs * data[j+doffset];
-			}
-
-		} rvec[i] = acc * (1./ nlen);
-
-		printf("RSP[%4d / %4d] = %10.1f + %10.1f\n",
-			i, nfreq, real(acc), imag(acc));
+		if (debug)
+			printf("RSP[%4d / %4d] = %10.2f+%10.2fj  // Expect %10.2f+%10.2fj\n",
+				i, nfreq, real(rvec[i]), imag(rvec[i]),
+				real(hk), imag(hk));
 	}
 
 	delete[] data;
-	delete[] input;
 
-	{
+	if (fname) {
 		FILE* fp;
-		fp = fopen("filter_tb.dbl","w");
+		fp = fopen(fname,"w");
 		fwrite(rvec, sizeof(COMPLEX), nfreq, fp);
 		fclose(fp);
 	}
@@ -347,7 +345,7 @@ template<class VFLTR> void FILTERTB<VFLTR>::measure_lowpass(double &fp, double &
 	int	midcut;
 	bool	passband_ripple = false;
 
-	response(NLEN, data);
+	response(NLEN, data, 1.0, "filter_tb.dbl");
 
 	for(int k=0; k<NLEN; k++) {
 		magv[k]= norm(data[k]);

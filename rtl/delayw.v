@@ -56,18 +56,9 @@ module delayw(i_clk, i_reset, i_delay, i_ce, i_word, o_word, o_delayed);
 	//
 	// FIXED_DELAY
 	//	If your application requires a fixed, non-zero delay--set it
-	//	here.  Subsequent in i_delay will then be ignored.
-	//	Alternatively, you could just set i_delay with your favorite
-	//	wire-value and turn off OPT_DROP_CE below.
+	//	here.  Subsequent values in i_delay will then be ignored.
 	//
 	parameter [(LGDLY-1):0]	FIXED_DELAY=0;
-	//
-	//	OPT_DROP_CE: Set this if you anticipate changing the delay,
-	//	or reseting this device while in operation.  If set, the output
-	//	CE's will be suppressed until the delay has had a chance
-	//	to fully load up the memory.
-	//
-	parameter	[0:0]	OPT_DROP_CE = (FIXED_DELAY == 0) ? 1'b1 : 1'b0;
 	//
 	//
 	input				i_clk, i_reset;
@@ -76,7 +67,6 @@ module delayw(i_clk, i_reset, i_delay, i_ce, i_word, o_word, o_delayed);
 	input	wire	[(DW-1):0]	i_word;
 	output	reg	[(DW-1):0]	o_word, o_delayed;
 
-	wire			full;
 	reg	[(LGDLY-1):0]	rdaddr, wraddr;
 	wire	[(LGDLY-1):0]	one, two;
 	reg	[(DW-1):0]	mem	[0:((1<<LGDLY)-1)];

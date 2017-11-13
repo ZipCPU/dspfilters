@@ -100,11 +100,11 @@ public:
 		}
 	}
 
-	void	apply(int nlen, int *data) {
+	void	apply(int nlen, long *data) {
 		PARENTTB::apply(nlen, data);
 	}
 
-	void	load(int nlen, int *data) {
+	void	load(int nlen, long *data) {
 		PARENTTB::m_core->i_reset = 0;
 		PARENTTB::m_core->i_ce    = 0;
 		PARENTTB::m_core->i_tap_wr= 1;
@@ -115,7 +115,7 @@ public:
 		PARENTTB::clear_cache();
 	}
 
-	void	testload(int nlen, int *data) {
+	void	testload(int nlen, long *data) {
 		load(nlen, data);
 
 		for(int k=0; k<nlen; k++) {

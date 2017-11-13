@@ -45,7 +45,7 @@ typedef	std::complex<double>	COMPLEX;
 #endif
 
 template <class VFLTR> class FILTERTB : public TESTB<VFLTR> {
-	int	*m_hk;
+	long	*m_hk;
 	int	m_delay, m_iw, m_ow, m_tw, m_ntaps, m_nclks;
 	FILE	*result_fp;
 public:
@@ -116,17 +116,17 @@ public:
 	virtual	void	reset(void);
 
 	// Load values from taps into the filter.
-	virtual	void	load(int  ntaps,  int *data);
+	virtual	void	load(int  ntaps,  long *data);
 
 	// Apply a given test vector to the filter (no reset applied)
-	virtual	void	apply(int nlen, int *data);
+	virtual	void	apply(int nlen, long *data);
 
 	// Reset the filter, and apply a given test vector to the filter
-	virtual	void	test(int  nlen, int *data);
+	virtual	void	test(int  nlen, long *data);
 
 	// Load the taps into the filter, and then compare the taps against
 	// the impulse response that results.
-	virtual	void	testload(int  nlen, int *data);
+	virtual	void	testload(int  nlen, long *data);
 
 	// The [] operator is used to "read-back" from the filter what it's
 	// actual impulse response is.  [0] should return the first value in
@@ -144,7 +144,8 @@ public:
 
 	// Measure the filter's frequency response, across nfreq from 0 to
 	// the Nyquist frequency.
-	virtual	void	response(int nfreq, COMPLEX *response, double mag= 1.0);
+	virtual	void	response(int nfreq, COMPLEX *response, double mag= 1.0,
+				const char *fname = NULL);
 
 	// Some canned tests we can apply
 	bool	test_overflow(void);

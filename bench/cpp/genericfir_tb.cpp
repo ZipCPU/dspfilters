@@ -14,7 +14,7 @@
 // Copyright (C) 2017, Gisselquist Technology, LLC
 //
 // This program is free software (firmware): you can redistribute it and/or
-// modify it under the terms of  the GNU General Public License as published
+// modify it under the terms of the GNU General Public License as published
 // by the Free Software Foundation, either version 3 of the License, or (at
 // your option) any later version.
 //
@@ -49,6 +49,7 @@
 #include "testb.h"
 #include "filtertb.h"
 #include "filtertb.cpp"
+#include "twelvebfltr.h"
 
 const	unsigned	NTAPS = 128;
 const	unsigned	IW = 12;
@@ -60,9 +61,9 @@ const	unsigned	DELAY= NTAPS; // bits
 class	GENERICFIR_TB : public FILTERTB<BASECLASS> {
 public:
 	GENERICFIR_TB(void) {
+		TW(::TW);
 		IW(::IW);
 		OW(::OW);
-		TW(::TW);
 		NTAPS(::NTAPS);
 		DELAY(::DELAY);
 	}
@@ -71,11 +72,11 @@ public:
 		FILTERTB<BASECLASS>::reset();
 	}
 
-	void	apply(int nlen, int *data) {
+	void	apply(int nlen, long *data) {
 		FILTERTB<BASECLASS>::apply(nlen, data);
 	}
 
-	void	testload(int nlen, int *data) {
+	void	testload(int nlen, long *data) {
 		FILTERTB<BASECLASS>::testload(nlen, data);
 	}
 
@@ -97,10 +98,10 @@ int	main(int argc, char **argv) {
 	// FILE	*dsp = fopen("dsp.64t", "w");
 
 	const int	TAPVALUE = -(1<<(IW-1));
-	const int	IMPULSE  = (1<<(IW-1))-1;
+	const long	IMPULSE  = (1<<(IW-1))-1;
 
-	int	tapvec[NTAPS];
-	int	ivec[2*NTAPS];
+	long	tapvec[NTAPS];
+	long	ivec[2*NTAPS];
 
 	// tb->trace("trace.vcd");
 	tb->reset();
@@ -148,7 +149,7 @@ int	main(int argc, char **argv) {
 	tb->test(2*NTAPS, ivec);
 
 	for(unsigned i=0; i<NTAPS; i++)
-		assert(ivec[i] == ((int)i+1)*IMPULSE*TAPVALUE);
+		assert(ivec[i] == (i+1)*IMPULSE*TAPVALUE);
 
 	assert(tb->test_overflow());
 
@@ -159,9 +160,32 @@ int	main(int argc, char **argv) {
 		printf("FS     = %f\n", fs);
 		printf("DEPTH  = %6.2f dB\n", depth);
 		printf("RIPPLE = %.2g\n", ripple);
+
+		assert(depth < -13);
+		assert(depth > -14);
 	}
 
-	printf("%d tests accomplished\nSUCCESS\n", NTAPS+3);
+	assert(NCOEFFS < NTAPS);
+	for(int i=0; i<NCOEFFS; i++)
+		tapvec[i] = icoeffs[i];
+	for(int i=NCOEFFS; i<(int)NTAPS; i++)
+		tapvec[i] = 0;
+
+	tb->testload(NTAPS, tapvec);
+
+	{
+		double fp, fs, depth, ripple;
+		tb->measure_lowpass(fp, fs, depth, ripple);
+		printf("FP     = %f\n", fp);
+		printf("FS     = %f\n", fs);
+		printf("DEPTH  = %6.2f dB\n", depth);
+		printf("RIPPLE = %.2g\n", ripple);
+
+		assert(depth < -54);
+		assert(depth > -55);
+	}
+
+	printf("%d tests accomplished\nSUCCESS\n", NTAPS+4);
 
 	// tb->close();
 	exit(0);

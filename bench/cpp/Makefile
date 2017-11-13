@@ -46,7 +46,7 @@ RTLD	:= ../../rtl
 VERILATOR_ROOT ?= $(shell bash -c 'verilator -V|grep VERILATOR_ROOT | head -1 | sed -e " s/^.*=\s*//"')
 VROOT   := $(VERILATOR_ROOT)
 INCS	:= -I$(RTLD)/obj_dir/ -I$(VROOT)/include -I../rtl/obj_dir
-PROGRAMS := genericfir_tb slowfil_tb fastfir_tb boxcar_tb lfsr_gal_tb lfsr_fib_tb delayw_tb # symfil_tb
+PROGRAMS := genericfir_tb fastfir_tb boxcar_tb lfsr_gal_tb lfsr_fib_tb delayw_tb # symfil_tb slowfil_tb
 SOURCES := $(addsuffix .cpp,$(PROGRAMS)) filtertb.cpp
 VOBJDR	:= $(RTLD)/obj_dir
 SYSVDR	:= $(VROOT)/include

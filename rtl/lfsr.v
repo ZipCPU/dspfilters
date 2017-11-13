@@ -53,13 +53,6 @@ module	lfsr(i_clk, i_reset, i_ce, o_word);
 	output	wire	[(WS-1):0]	o_word;
 
 	reg	[(LN+WS-2):0]	sreg;
-`ifdef	WORKS_WITH_VERILATOR
-	reg	[(LN-1):0]	tapv	[0:(WS-1)];
-`else
-	wire	[(LN-1):0]	tapv	[0:(WS-1)];
-`endif
-
-	assign	tapv[0] = TAPS;
 
 	// Precompute the stepping matrix for k-steps into the future, k<WS.
 	// See https://groupgs.google.com/forum/#!topic/sci.crypt/DRrBi2tMocI
@@ -67,15 +60,22 @@ module	lfsr(i_clk, i_reset, i_ce, o_word);
 	// As for our method, make the synthesis tool do our work for us.  This
 	// works because we are giving the tool constants, and expressions
 	// derived from constants.
+
+	// Verilat*r has a problem with tapv: it depends upon itself, and so
+	// verilat*r cannot optimize it.  We'll tell Verilator to ignore this
+	// problem for now (it'll still do the "right thing"), but we're not
+	// going to get wonderful code from Verilator as a result.
+	//
+	// verilator lint_off UNOPTFLAT
+	wire	[(LN-1):0]	tapv	[0:(WS-1)];
+	assign	tapv[0] = TAPS;
+
 	genvar	k;
 	generate for(k=1; k<WS; k=k+1)
 	begin : PRECALCULATING_TAP_VALUE
-`ifdef	WORKS_WITH_VERILATOR
-		initial	tapv[k] = (tapv[k-1]<<1)^((tapv[k-1][(LN-1)])?TAPS:0);
-`else
 		assign	tapv[k] = (tapv[k-1]<<1)^((tapv[k-1][(LN-1)])?TAPS:0);
-`endif
 	end endgenerate
+	// verilator lint_on  UNOPTFLAT
 
 	// The trick to this approach is to calculate the reset value.
 	// Upon reset, we want the bottom LN bits to be our INITIAL_FILL.
