@@ -1,0 +1,5 @@
+read_verilog -D LFSR -formal ../../rtl/lfsr.v
+prep -top lfsr -nordff
+clk2fflogic
+opt clean
+write_smt2 -wires lfsr.smt2
