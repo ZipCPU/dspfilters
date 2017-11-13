@@ -274,8 +274,8 @@ template<class VFLTR> void	FILTERTB<VFLTR>::response(int nfreq,
 			theta=0.;
 		hk = 0;
 
-		theta = 0.;
 		if (debug)
+			theta = 0.;
 			for(int j=0; j<nlen; j++) {
 				double	dv = cos(theta);
 				real(hk) += dv * (*this)[j];
@@ -297,8 +297,8 @@ template<class VFLTR> void	FILTERTB<VFLTR>::response(int nfreq,
 		// a 90 degree phase offset.  Do this for all but the zero
 		// frequency
 		if (i > 0) {
-			theta = 0.;
 			if (debug)
+				theta = 0.;
 				for(int j=0; j<2*nlen; j++) {
 					double	dv = sin(theta);
 					imag(hk) += dv * (*this)[j];
