@@ -201,7 +201,7 @@ template<class VFLTR> void	FILTERTB<VFLTR>::testload(int nlen, long *data) {
 	for(int k=0; k<nlen; k++) {
 		int	m = (*this)[k];
 		if (data[k] != m)
-			printf("Data[k] = %ld != (*this)[k] = %d\n", data[k], m);
+			printf("Err: Data[k] = %ld != (*this)[k] = %d\n", data[k], m);
 		assert(data[k] == m);
 	}
 	for(int k=nlen; k<2*DELAY(); k++)
@@ -221,7 +221,7 @@ template<class VFLTR> bool	FILTERTB<VFLTR>::test_overflow(void) {
 	for(int k=0; k<nlen; k++) {
 		// input[v] * (*this)[(NTAPS-1)-v]
 		if ((*this)[NTAPS()-1-k] < 0)
-			input[k] = -maxv;
+			input[k] = -maxv-1;
 		else
 			input[k] =  maxv;
 		output[k]= input[k];
@@ -259,10 +259,7 @@ template<class VFLTR> void	FILTERTB<VFLTR>::response(int nfreq,
 	long	*data = new long[nlen];
 	double	df = 1./nfreq / 2.;
 	COMPLEX	hk;
-	const bool	debug= true;
-
-for(int i=0; i<nlen; i++)
-	printf("h[%3d] = %6d\n", i, (*this)[i]);
+	const bool	debug= false;
 
 	// Nh tap filter
 	// Nv length vector
