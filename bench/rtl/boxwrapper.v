@@ -76,7 +76,8 @@ module	boxwrapper(i_clk, i_reset, i_tap_wr, i_tap, i_ce, i_sample, o_result);
 
 	assign	navg = (i_tap_wr)?i_sample[(LGMEM-1):0] : r_navg;
 
-	boxcar	#(IW, OW, LGMEM) boxfilter(i_clk, (i_reset)||(i_tap_wr),
+	boxcar	#(.IW(IW), .OW(OW), .LGMEM(LGMEM))
+		 boxfilter(i_clk, (i_reset)||(i_tap_wr),
 			navg, i_ce, i_sample, o_result);
 
 	// Make verilator happy
