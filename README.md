@@ -16,6 +16,7 @@ find valuable.  These include:
 1. A [Linear Feedback Shift Register (LFSR)](http://zipcpu.com/dsp/2017/10/27/lfsr.html)
 
 1. [Building a generic filtering test harness](http://zipcpu.com/dsp/2017/11/04/genfil-tb.html)
+   - [Measuring a filter's frequency response](http://zipcpu.com/dsp/2017/11/22/fltr-response.html)
 
 1. [Delaying elements in a DSP system](http://zipcpu.com/dsp/2017/11/10/delayw.html)
 
