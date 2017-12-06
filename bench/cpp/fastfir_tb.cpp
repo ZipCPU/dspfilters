@@ -52,8 +52,8 @@
 #include "twelvebfltr.h"
 
 const	unsigned	NTAPS = 128;
-const	unsigned	TW = 12; // bits
 const	unsigned	IW   = 12; // bits
+const	unsigned	TW   = 12; // bits
 const	unsigned	OW   = IW+TW+7; // bits
 const	unsigned	DELAY= 1; // bits
 
@@ -97,7 +97,7 @@ int	main(int argc, char **argv) {
 	tb = new FASTFIR_TB();
 	// FILE	*dsp = fopen("dsp.64t", "w");
 
-	const int	TAPVALUE = -(1<<(IW-1));
+	const int	TAPVALUE = -(1<<(TW-1));
 	const long	IMPULSE  = (1<<(IW-1))-1;
 
 	long	tapvec[NTAPS];
@@ -107,16 +107,20 @@ int	main(int argc, char **argv) {
 	tb->reset();
 
 	for(unsigned k=0; k<NTAPS; k++) {
-		printf("Test #%3d /%3d\n", k+1, NTAPS);
 		//
-		// Load a new set of taps
+		// Create a new coefficient vector
 		//
+		// Initialize it with all zeros
 		for(unsigned i=0; i<NTAPS; i++)
 			tapvec[i] = 0;
+		// Then set one value to non-zero
 		tapvec[k] = TAPVALUE;
 
+		// Test whether or not this coefficient vector
+		// loads properly into the filter
 		tb->testload(NTAPS, tapvec);
 
+		// Then test whether or not the filter overflows
 		tb->test_overflow();
 	}
 
@@ -138,31 +142,37 @@ int	main(int argc, char **argv) {
 	for(unsigned i=0; i<NTAPS; i++)
 		assert(ivec[i] == IMPULSE * TAPVALUE);
 
-	printf("Next-Test\n");
-
 	//
 	//
 	// Block filter, block input
 	printf("Test #%3d /%3d\n", NTAPS+2, NTAPS+2);
-
+	// Set every element of an array to the same value
 	for(unsigned i=0; i<2*NTAPS; i++)
 		ivec[i] = IMPULSE;
 
+	// Now apply this vector to the filter
 	tb->test(2*NTAPS, ivec);
 
+	// And check that it has the right response
 	for(unsigned i=0; i<NTAPS; i++)
 		assert(ivec[i] == (i+1)*IMPULSE*TAPVALUE);
 
 	assert(tb->test_overflow());
 
 	{
-		double fp, fs, depth, ripple;
+		double fp,      // Passband frequency cutoff
+			fs,     // Stopband frequency cutoff,
+			depth,  // Depth of the stopband
+			ripple; // Maximum deviation within the passband
+
 		tb->measure_lowpass(fp, fs, depth, ripple);
 		printf("FP     = %f\n", fp);
 		printf("FS     = %f\n", fs);
 		printf("DEPTH  = %6.2f dB\n", depth);
 		printf("RIPPLE = %.2g\n", ripple);
 
+		// The depth of the filter should be between -14 and -13.
+		// assert() that here.
 		assert(depth < -13);
 		assert(depth > -14);
 	}
@@ -170,26 +180,32 @@ int	main(int argc, char **argv) {
 	assert(NCOEFFS < NTAPS);
 	for(int i=0; i<NCOEFFS; i++)
 		tapvec[i] = icoeffs[i];
+
+	// In case the filter is longer than the number of taps we have,
+	// we'll load zero any taps beyond the filters length.
 	for(int i=NCOEFFS; i<(int)NTAPS; i++)
 		tapvec[i] = 0;
 
 	tb->testload(NTAPS, tapvec);
 
 	{
-		double fp, fs, depth, ripple;
+		double fp,      // Passband frequency cutoff
+			fs,     // Stopband frequency cutoff,
+			depth,  // Depth of the stopband
+			ripple; // Maximum deviation within the passband
+
 		tb->measure_lowpass(fp, fs, depth, ripple);
 		printf("FP     = %f\n", fp);
 		printf("FS     = %f\n", fs);
 		printf("DEPTH  = %6.2f dB\n", depth);
 		printf("RIPPLE = %.2g\n", ripple);
 
+		// The depth of this stopband should be between -55 and -54 dB
 		assert(depth < -54);
 		assert(depth > -55);
 	}
+	printf("SUCCESS\n");
 
-	printf("%d tests accomplished\nSUCCESS\n", NTAPS+4);
-
-	// tb->close();
 	exit(0);
 }
 
