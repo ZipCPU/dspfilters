@@ -40,7 +40,6 @@
 #include <ctype.h>
 #include <string.h>
 #include <stdint.h>
-#include <complex>
 #include <assert.h>
 
 #include "verilated.h"
@@ -57,8 +56,7 @@ const	unsigned	TW   = IW; // bits
 const	unsigned	OW = IW+TW+7;
 const	unsigned	DELAY= NTAPS; // bits
 
-#define	BASECLASS	Vgenericfir
-class	GENERICFIR_TB : public FILTERTB<BASECLASS> {
+class	GENERICFIR_TB : public FILTERTB<Vgenericfir> {
 public:
 	GENERICFIR_TB(void) {
 		TW(::TW);
@@ -68,21 +66,6 @@ public:
 		DELAY(::DELAY);
 	}
 
-	void	reset(void) {
-		FILTERTB<BASECLASS>::reset();
-	}
-
-	void	apply(int nlen, long *data) {
-		FILTERTB<BASECLASS>::apply(nlen, data);
-	}
-
-	void	testload(int nlen, long *data) {
-		FILTERTB<BASECLASS>::testload(nlen, data);
-	}
-
-	bool	test_overflow(void) {
-		return FILTERTB<BASECLASS>::test_overflow();
-	}
 
 	void	trace(const char *vcd_trace_file_name) {
 		fprintf(stderr, "Opening TRACE(%s)\n", vcd_trace_file_name);
@@ -95,10 +78,9 @@ GENERICFIR_TB	*tb;
 int	main(int argc, char **argv) {
 	Verilated::commandArgs(argc, argv);
 	tb = new GENERICFIR_TB();
-	// FILE	*dsp = fopen("dsp.64t", "w");
 
 	const int	TAPVALUE = -(1<<(TW-1));
-	const long	IMPULSE  = (1<<(IW-1))-1;
+	const long	IMPULSE  =  (1<<(IW-1))-1;
 
 	long	tapvec[NTAPS];
 	long	ivec[2*NTAPS];

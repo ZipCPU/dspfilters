@@ -96,8 +96,13 @@ template<class VFLTR> void	FILTERTB<VFLTR>::apply(int nlen, long *data) {
 
 		if (m_nclks > 1) {
 			TESTB<VFLTR>::m_core->i_ce     = 0;
-			for(int k=1; k<m_nclks; k++)
+			for(int k=1; k<m_nclks; k++) {
 				tick();
+#ifdef	FILTER_HAS_O_CE
+				if (TESTB<VFLTR>::m_core->o_ce)
+					data[i] = sbits(TESTB<VFLTR>::m_core->o_result, OW());
+#endif
+			}
 		}
 	}
 	TESTB<VFLTR>::m_core->i_ce     = 0;
@@ -132,34 +137,40 @@ template<class VFLTR> void	FILTERTB<VFLTR>::test(int  nlen, long *data) {
 
 	int	tstcounts = nlen+DELAY();
 	for(int i=0; i<tstcounts; i++) {
-		int	v;
+		long	v;
 
 		TESTB<VFLTR>::m_core->i_ce = 1;
 		// Strip off any excess bits
 		if (i >= nlen)
-			TESTB<VFLTR>::m_core->i_sample = v = 0;
+			TESTB<VFLTR>::m_core->i_sample = 0;
 		else
 			TESTB<VFLTR>::m_core->i_sample = ubits(data[i], IW());
 
 		if (debug)
-			printf("%3d, %3d, %d : Input : %5d[%6x] ", i, DELAY(), nlen, v,v );
+			printf("%3d, %3d, %d : Input : %5ld[%6lx] ", i, DELAY(), nlen, v,v );
 
 		// Apply the filter
 		tick();
 
 		// Sign extend the result
-		v = sbits(TESTB<VFLTR>::m_core->o_result, OW());
-
-		if (i >= DELAY()) {
-			if (debug) printf("Read    :%8d[%8x]\n", v, v);
-			data[i-DELAY()] = v;
-		} else if (debug)
-			printf("Discard : %2d\n", v);
+		v = TESTB<VFLTR>::m_core->o_result;
 
 		// Deal with any filters requiring multiple clocks
 		TESTB<VFLTR>::m_core->i_ce = 0;
-		for(int k=1; k<m_nclks; k++)
+		for(int k=1; k<m_nclks; k++) {
+#ifdef	FILTER_HAS_O_CE
+			if (TESTB<VFLTR>::m_core->o_ce)
+				v = TESTB<VFLTR>::m_core->o_result;
+#endif
 			tick();
+		}
+
+		if (i >= DELAY()) {
+			if (debug) printf("Read    :%8ld[%8lx]\n", v, v);
+			data[i-DELAY()] = sbits(v, OW());
+		} else if (debug)
+			printf("Discard : %2ld\n", v);
+
 	}
 	TESTB<VFLTR>::m_core->i_ce = 0;
 }
@@ -189,20 +200,25 @@ template<class VFLTR> int	FILTERTB<VFLTR>::operator[](const int tap) {
 		}
 	}
 
-	// if (m_hk[tap] != 0) printf("Hk[%4d] = %8d\n", tap, m_hk[tap]);
 	return m_hk[tap];
 }
 
 template<class VFLTR> void	FILTERTB<VFLTR>::testload(int nlen, long *data) {
-// printf("FILTERTB::testload(%d, ...)\n", nlen);
+	bool	mismatch = false;
 	load(nlen, data);
 	reset();
 
 	for(int k=0; k<nlen; k++) {
 		int	m = (*this)[k];
-		if (data[k] != m)
-			printf("Err: Data[k] = %ld != (*this)[k] = %d\n", data[k], m);
-		assert(data[k] == m);
+		if (data[k] != m) {
+			printf("Err: Data[%d] = %ld != (*this)[%d] = %d\n", k, data[k], k, m);
+			mismatch = true;
+		}
+	}
+
+	if (mismatch) {
+		fflush(stdout);
+		assert(!mismatch);
 	}
 	for(int k=nlen; k<2*DELAY(); k++)
 		assert(0 == (*this)[k]);

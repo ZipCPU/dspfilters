@@ -40,7 +40,6 @@
 #include <ctype.h>
 #include <string.h>
 #include <stdint.h>
-#include <complex>
 #include <assert.h>
 
 #include "verilated.h"
@@ -57,8 +56,7 @@ const	unsigned	TW   = 12; // bits
 const	unsigned	OW   = IW+TW+7; // bits
 const	unsigned	DELAY= 1; // bits
 
-#define	BASECLASS	Vfastfir
-class	FASTFIR_TB : public FILTERTB<BASECLASS> {
+class	FASTFIR_TB : public FILTERTB<Vfastfir> {
 public:
 	FASTFIR_TB(void) {
 		TW(::TW);
@@ -68,21 +66,6 @@ public:
 		DELAY(::DELAY);
 	}
 
-	void	reset(void) {
-		FILTERTB<BASECLASS>::reset();
-	}
-
-	void	apply(int nlen, long *data) {
-		FILTERTB<BASECLASS>::apply(nlen, data);
-	}
-
-	void	testload(int nlen, long *data) {
-		FILTERTB<BASECLASS>::testload(nlen, data);
-	}
-
-	bool	test_overflow(void) {
-		return FILTERTB<BASECLASS>::test_overflow();
-	}
 
 	void	trace(const char *vcd_trace_file_name) {
 		fprintf(stderr, "Opening TRACE(%s)\n", vcd_trace_file_name);
@@ -95,10 +78,9 @@ FASTFIR_TB	*tb;
 int	main(int argc, char **argv) {
 	Verilated::commandArgs(argc, argv);
 	tb = new FASTFIR_TB();
-	// FILE	*dsp = fopen("dsp.64t", "w");
 
 	const int	TAPVALUE = -(1<<(TW-1));
-	const long	IMPULSE  = (1<<(IW-1))-1;
+	const long	IMPULSE  =  (1<<(IW-1))-1;
 
 	long	tapvec[NTAPS];
 	long	ivec[2*NTAPS];
@@ -127,7 +109,6 @@ int	main(int argc, char **argv) {
 	//
 	// Block filter, impulse input
 	//
-	printf("Test #%3d /%3d\n", NTAPS+1, NTAPS+2);
 	for(unsigned i=0; i<NTAPS; i++)
 		tapvec[i] = TAPVALUE;
 
@@ -145,7 +126,6 @@ int	main(int argc, char **argv) {
 	//
 	//
 	// Block filter, block input
-	printf("Test #%3d /%3d\n", NTAPS+2, NTAPS+2);
 	// Set every element of an array to the same value
 	for(unsigned i=0; i<2*NTAPS; i++)
 		ivec[i] = IMPULSE;
