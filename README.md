@@ -26,6 +26,8 @@ find valuable.  These include:
 
    - And [How to generate multiple bits per clock using an LFSR](http://zipcpu.com/dsp/2017/11/13/lfsr-multi.html)
 
+1. [Testing a generic filter using the test harness](http://zipcpou.com/dsp/2017/12/06/fastfir-tb.md)
+
 I have other filters built as well that I am looking forward to both
 writing about and adding to this repository.  These include a
 symmetric filter, a halfband filter, or even a Hilbert transform.  I've
