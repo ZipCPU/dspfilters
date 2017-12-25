@@ -109,7 +109,6 @@ template<class VFLTR> void	FILTERTB<VFLTR>::apply(int nlen, long *data) {
 }
 
 template<class VFLTR> void	FILTERTB<VFLTR>::load(int  ntaps, long *data) {
-// printf("FILTERTB::load(%d, ...)\n", ntaps);
 	TESTB<VFLTR>::m_core->i_reset = 0;
 	TESTB<VFLTR>::m_core->i_ce    = 0;
 	TESTB<VFLTR>::m_core->i_tap_wr= 1;
@@ -133,13 +132,14 @@ template<class VFLTR> void	FILTERTB<VFLTR>::test(int  nlen, long *data) {
 
 	TESTB<VFLTR>::m_core->i_reset  = 0;
 	TESTB<VFLTR>::m_core->i_tap_wr = 0;
-	TESTB<VFLTR>::m_core->i_ce = 1;
 
 	int	tstcounts = nlen+DELAY();
 	for(int i=0; i<tstcounts; i++) {
 		long	v;
 
+		v = 0;
 		TESTB<VFLTR>::m_core->i_ce = 1;
+
 		// Strip off any excess bits
 		if (i >= nlen)
 			TESTB<VFLTR>::m_core->i_sample = 0;
@@ -147,7 +147,7 @@ template<class VFLTR> void	FILTERTB<VFLTR>::test(int  nlen, long *data) {
 			TESTB<VFLTR>::m_core->i_sample = ubits(data[i], IW());
 
 		if (debug)
-			printf("%3d, %3d, %d : Input : %5ld[%6lx] ", i, DELAY(), nlen, v,v );
+			printf("%3d, %3d, %d : Input :%10ld[%08lx] ", i, DELAY(), nlen, sbits(data[i],IW()),ubits(data[i],IW()) );
 
 		// Apply the filter
 		tick();
@@ -166,7 +166,8 @@ template<class VFLTR> void	FILTERTB<VFLTR>::test(int  nlen, long *data) {
 		}
 
 		if (i >= DELAY()) {
-			if (debug) printf("Read    :%8ld[%8lx]\n", v, v);
+			if (debug) printf("Read    :%12ld[%8lx]\n",
+				sbits(v, OW()), v);
 			data[i-DELAY()] = sbits(v, OW());
 		} else if (debug)
 			printf("Discard : %2ld\n", v);
@@ -225,7 +226,6 @@ template<class VFLTR> void	FILTERTB<VFLTR>::testload(int nlen, long *data) {
 }
 
 template<class VFLTR> bool	FILTERTB<VFLTR>::test_overflow(void) {
-// printf("TESTING-BIBO\n");
 	int	nlen = 2*NTAPS();
 	long	*input  = new long[nlen],
 		*output = new long[nlen];

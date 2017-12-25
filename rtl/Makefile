@@ -45,9 +45,9 @@ VDIRFB:= $(FBDIR)/obj_dir
 VERILATOR := verilator
 VFLAGS := -O3 -Wall -MMD -trace -cc
 SUBMAKE := make --no-print-directory -C
-
-.PHONY: all genericfir symfil slowfil
-all: smplfir iiravg genericfir fastfir boxcar lfsr_gal lfsr_fib delayw lfsr # symfil slowfil
+CORES := smplfir iiravg genericfir fastfir boxcar lfsr_gal lfsr_fib delayw lfsr slowfil
+.PHONY: all $(CORES)
+all: $(CORES) # symfil
 
 genericfir:	$(VDIRFB)/Vgenericfir__ALL.a
 fastfir:	$(VDIRFB)/Vfastfir__ALL.a
