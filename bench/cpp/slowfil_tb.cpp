@@ -166,7 +166,7 @@ int	main(int argc, char **argv) {
 
 	for(unsigned i=0; i<NTAPS; i++)
 		assert(ivec[i] == IMPULSE * TAPVALUE);
-	for(int i=NTAPS; i<2*NTAPS; i++)
+	for(unsigned i=NTAPS; i<2*NTAPS; i++)
 		assert(0 == ivec[i]);
 
 	//
@@ -188,7 +188,7 @@ int	main(int argc, char **argv) {
 			assert(ivec[i] == expected);
 		}
 	}
-	for(int i=0; i<NTAPS; i++) {
+	for(unsigned i=0; i<NTAPS; i++) {
 		long	expected = NTAPS*IMPULSE * TAPVALUE;
 		if (ivec[NTAPS+i] != expected) {
 			printf("OUT[%3d] = %12ld != NTAPS*IMPULSE*TAPVALUE = %12ld\n",

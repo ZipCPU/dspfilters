@@ -45,6 +45,8 @@
 module	slowfil(i_clk, i_reset, i_tap_wr, i_tap, i_ce, i_sample, o_ce, o_result);
 	parameter	LGNTAPS = 7, IW=16, TW=16, OW = IW+TW+LGNTAPS;
 	parameter	[LGNTAPS:0]	NTAPS = 110; // (1<<LGNTAPS);
+	parameter	[0:0]		FIXED_TAPS = 1'b0;
+	parameter			INITIAL_COEFFS  = "";
 	localparam	MEMSZ = (1<<LGNTAPS);
 	//
 	// Control inputs (wires)
@@ -69,12 +71,11 @@ module	slowfil(i_clk, i_reset, i_tap_wr, i_tap, i_ce, i_sample, o_ce, o_result);
 	//
 	//
 
-	reg	[(LGNTAPS-1):0]	tapwidx;	// Coef memory write index
 	reg	[(TW-1):0]	tapmem	[0:(MEMSZ-1)];	// Coef memory
 	reg signed [(TW-1):0]	tap;		// Value read from coef memory
 
 	reg	[(LGNTAPS-1):0]	dwidx, didx;	// Data write and read indices
-	reg	[LGNTAPS:0]	tidx;		// Coefficient read index
+	reg	[(LGNTAPS-1):0]	tidx;		// Coefficient read index
 	reg	[(IW-1):0]	dmem	[0:(MEMSZ-1)];	// Data memory
 	reg signed [(IW-1):0]	data;		// Data value read from memory
 
@@ -94,18 +95,32 @@ module	slowfil(i_clk, i_reset, i_tap_wr, i_tap, i_ce, i_sample, o_ce, o_result);
 	// Starting at zero on reset, increment the tap write index on any
 	// write of a new tap.  This also means that changing coefficients
 	// will require a reset.
-	initial	tapwidx = 0;
-	always @(posedge i_clk)
-		if(i_reset)
-			tapwidx <= 0;
-		else if (i_tap_wr)
-			tapwidx <= tapwidx + 1'b1;
+	generate if (FIXED_TAPS)
+	begin
+		initial $readmemh(INITIAL_COEFFS, tapmem);
 
-	// You could also load the tap memory at startup, via
-	// initial $readmemh("file.hex", tapmem);
-	always @(posedge i_clk)
-		if (i_tap_wr)
-			tapmem[tapwidx] <= i_tap;
+		// Make Verilators -Wall happy
+		// Verilator lint_off UNUSED
+		wire	[TW:0]	ignored_inputs;
+		assign	ignored_inputs = { i_tap_wr, i_tap };
+		// Verilator lint_on  UNUSED
+	end else begin
+		// Coef memory write index
+		reg	[(LGNTAPS-1):0]	tapwidx;
+
+		initial	tapwidx = 0;
+		always @(posedge i_clk)
+			if(i_reset)
+				tapwidx <= 0;
+			else if (i_tap_wr)
+				tapwidx <= tapwidx + 1'b1;
+
+		initial if (INITIAL_COEFFS != 0)
+			$readmemh(INITIAL_COEFFS, tapmem);
+		always @(posedge i_clk)
+			if (i_tap_wr)
+				tapmem[tapwidx] <= i_tap;
+	end endgenerate
 
 
 	//
@@ -130,6 +145,10 @@ module	slowfil(i_clk, i_reset, i_tap_wr, i_tap, i_ce, i_sample, o_ce, o_result);
 	//
 	//
 
+	// Determine if the next clock (not this one) will contain the last
+	// valid index, and so whether or not we need to stop.
+	wire	last_tap_index;
+	assign	last_tap_index = (NTAPS[LGNTAPS-1:0]-tidx <= 1);
 	// The pre_acc_ce traveling CE values keep track of when the
 	// results of reading memory are valid at the accumulation section
 	// of this code later on.
@@ -140,7 +159,7 @@ module	slowfil(i_clk, i_reset, i_tap_wr, i_tap, i_ce, i_sample, o_ce, o_result);
 			pre_acc_ce[0] <= 1'b0;
 		else if (i_ce)
 			pre_acc_ce[0] <= 1'b1;
-		else if ((pre_acc_ce[0])&&(tidx[LGNTAPS-1:0]!=0))
+		else if ((pre_acc_ce[0])&&(!last_tap_index))
 			pre_acc_ce[0] <= 1'b1;
 		else
 			pre_acc_ce[0] <= 1'b0;
@@ -154,19 +173,16 @@ module	slowfil(i_clk, i_reset, i_tap_wr, i_tap, i_ce, i_sample, o_ce, o_result);
 		else
 			pre_acc_ce[2:1] <= pre_acc_ce[1:0];
 
-	wire	[(LGNTAPS-1):0]	data_index_offset;
-	assign	data_index_offset = -NTAPS[(LGNTAPS-1):0]+1'b1;
-
 	initial	didx = 0;
 	initial	tidx = 0;
 	always @(posedge i_clk)
 		if (i_ce)
 		begin
-			didx <= dwidx + data_index_offset;
-			tidx <= NTAPS-1;
-		end else if (!tidx[LGNTAPS]) begin
-			didx <= didx + 1'b1;
-			tidx <= tidx - 1'b1;
+			didx <= dwidx;
+			tidx <= 0;
+		end else begin
+			didx <= didx - 1'b1;
+			tidx <= tidx + 1'b1;
 		end
 
 	// m_ce is valid when the first index is valid
