@@ -146,8 +146,10 @@ template<class VFLTR> void	FILTERTB<VFLTR>::test(int  nlen, long *data) {
 		else
 			TESTB<VFLTR>::m_core->i_sample = ubits(data[i], IW());
 
-		if (debug)
-			printf("%3d, %3d, %d : Input :%10ld[%08lx] ", i, DELAY(), nlen, sbits(data[i],IW()),ubits(data[i],IW()) );
+		if (debug) {
+			printf("%c%3d, %3d, %d : Input :%10ld[%08lx] ", (i >= nlen)?'z':' ', i, DELAY(), nlen, sbits(TESTB<VFLTR>::m_core->i_sample,IW()),ubits(TESTB<VFLTR>::m_core->i_sample,IW()) );
+			fflush(stdout);
+		}
 
 		// Apply the filter
 		tick();
