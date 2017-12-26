@@ -1,0 +1,6 @@
+read_verilog -D LFSREQUIV -formal ../../rtl/lfsr_fib.v
+read_verilog -D LFSREQUIV -formal ../../rtl/lfsr_gal.v
+read_verilog -D LFSREQUIV -formal lfsr_equiv.v
+prep -top lfsr_equiv -nordff
+opt -share_all
+write_smt2 -wires lfsr_equiv.smt2

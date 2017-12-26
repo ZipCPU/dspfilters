@@ -38,14 +38,15 @@
 ################################################################################
 ##
 ##
-TESTS := lfsr
+TESTS := lfsr lfsr_equiv
 .PHONY: $(TESTS)
 all: $(TESTS)
 RTL := ../../rtl
 
 LFSR=lfsr
-LFSRBMC=$(LFSR)_bmc
-LFSRIND=$(LFSR)_ind
+EQUIV=lfsr_equiv
+DELAY=delayw
+
 SMTBMC  := yosys-smtbmc
 # SOLVER  := -s z3
 SOLVER  := -s yices
@@ -56,15 +57,39 @@ INDARGS := $(SOLVER) -i
 $(LFSR).smt2: $(RTL)/$(LFSR).v
 	yosys -ql $(LFSR).yslog -s $(LFSR).ys
 
+$(EQUIV).smt2: $(EQUIV).v $(RTL)/lfsr_fib.v $(RTL)/lfsr_gal.v
+	yosys -ql $(EQUIV).yslog -s $(EQUIV).ys
+
+$(DELAY).smt2: $(RTL)/delayw.v
+	yosys -ql $(DELAY).yslog -s $(DELAY).ys
+
 $(LFSR) : $(LFSR).check
 $(LFSR).check: $(LFSR).smt2
 	@rm -f $(LFSR).check
-	$(SMTBMC) --presat $(BMCARGS) -t 520 --dump-vcd $(LFSRBMC).vcd $(LFSR).smt2
-	$(SMTBMC) -g       $(BMCARGS) -t 520 --dump-vcd $(LFSRBMC).vcd $(LFSR).smt2
-	$(SMTBMC)          $(INDARGS) -t 516 --dump-vcd $(LFSRIND).vcd $(LFSR).smt2
+	$(SMTBMC) --presat $(ARGS) -t  60 --dump-vcd $(LFSR).vcd $(LFSR).smt2
+	$(SMTBMC)       -i $(ARGS) -t  60 --dump-vcd $(LFSR).vcd $(LFSR).smt2
+	$(SMTBMC) -g       $(ARGS) -t 120 --dump-vcd $(LFSR).vcd $(LFSR).smt2
+	touch $@
+
+$(EQUIV) : $(EQUIV).check
+$(EQUIV).check: $(EQUIV).smt2
+	@rm -f $(EQUIV).check
+	$(SMTBMC) --presat $(ARGS) -t  16 --dump-vcd $(EQUIV).vcd $(EQUIV).smt2
+	$(SMTBMC)       -i $(ARGS) -t  60 --dump-vcd $(EQUIV).vcd $(EQUIV).smt2
+	$(SMTBMC) -g       $(ARGS) -t 120 --dump-vcd $(EQUIV).vcd $(EQUIV).smt2
+	touch $@
+
+$(DELAY) : $(DELAY).check
+$(DELAY).check: $(DELAY).smt2
+	@rm -f $(DELAY).check
+	$(SMTBMC) --presat $(ARGS) -t  16 --dump-vcd $(DELAY).vcd $(DELAY).smt2
+	$(SMTBMC)       -i $(ARGS) -t  60 --dump-vcd $(DELAY).vcd $(DELAY).smt2
+	$(SMTBMC) -g       $(ARGS) -t 120 --dump-vcd $(DELAY).vcd $(DELAY).smt2
 	touch $@
 
 
 clean:
-	rm -f   $(LFSR).smt2   $(LFSRBMC).smt2   $(LFSRIND).smt2   $(LFSR)*.vcd
+	rm -f $(LFSR).smt2   $(LFSR)*.vcd  $(LFSR).yslog
+	rm -f $(EQUIV).smt2  $(EQUIV)*.vcd $(EQUIV).yslog
+	rm -f $(DELAY).smt2  $(DELAY)*.vcd $(DELAY).yslog
 	rm -f *.check
