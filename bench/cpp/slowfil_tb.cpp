@@ -80,11 +80,6 @@ public:
 		CKPCE(::CKPCE);
 	}
 
-	void	reset(void) {
-		FILTERTB<Vslowfil>::reset();
-		clear_filter();
-	}
-
 	void	test(int nlen, long *data) {
 		clear_filter();
 		FILTERTB<Vslowfil>::test(nlen, data);
@@ -97,9 +92,6 @@ public:
 
 	void	clear_filter(void) {
 		m_core->i_tap_wr = 0;
-		m_core->i_reset  = 1;
-		tick();
-		m_core->i_reset = 0;
 
 		// This filter requires running NTAPS worth of data through
 		// it to fully clear it.  The reset isn't sufficient.
