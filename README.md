@@ -28,6 +28,10 @@ find valuable.  These include:
 
 1. [Testing a generic filter using the test harness](http://zipcpou.com/dsp/2017/12/06/fastfir-tb.md)
 
+1. [Building a slower filter](http://zipcpou.com/dsp/2017/12/30/slowfil.md),
+   one that time-multiplexes a single one hardware multiply across many
+   coefficients.
+
 I have other filters built as well that I am looking forward to both
 writing about and adding to this repository.  These include a
 symmetric filter, a halfband filter, or even a Hilbert transform.  I've
