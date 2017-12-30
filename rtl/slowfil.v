@@ -115,8 +115,8 @@ module	slowfil(i_clk, i_reset, i_tap_wr, i_tap, i_ce, i_sample, o_ce, o_result);
 			else if (i_tap_wr)
 				tapwidx <= tapwidx + 1'b1;
 
-		initial if (INITIAL_COEFFS != 0)
-			$readmemh(INITIAL_COEFFS, tapmem);
+		if (INITIAL_COEFFS != 0)
+			initial $readmemh(INITIAL_COEFFS, tapmem);
 		always @(posedge i_clk)
 			if (i_tap_wr)
 				tapmem[tapwidx] <= i_tap;
