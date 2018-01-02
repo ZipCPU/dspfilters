@@ -26,9 +26,9 @@ find valuable.  These include:
 
    - And [How to generate multiple bits per clock using an LFSR](http://zipcpu.com/dsp/2017/11/13/lfsr-multi.html)
 
-1. [Testing a generic filter using the test harness](http://zipcpou.com/dsp/2017/12/06/fastfir-tb.md)
+1. [Testing a generic filter using the test harness](http://zipcpu.com/dsp/2017/12/06/fastfir-tb.md)
 
-1. [Building a slower filter](http://zipcpou.com/dsp/2017/12/30/slowfil.md),
+1. [Building a slower filter](http://zipcpu.com/dsp/2017/12/30/slowfil.md),
    one that time-multiplexes a single one hardware multiply across many
    coefficients.
 

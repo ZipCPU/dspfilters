@@ -40,7 +40,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
 //
-`default_nettype	wire
+`default_nettype	none
 //
 module	slowfil(i_clk, i_reset, i_tap_wr, i_tap, i_ce, i_sample, o_ce, o_result);
 	parameter	LGNTAPS = 7, IW=16, TW=16, OW = IW+TW+LGNTAPS;
