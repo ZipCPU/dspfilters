@@ -41,7 +41,7 @@
 `default_nettype	none
 //
 module	fastfir(i_clk, i_reset, i_tap_wr, i_tap, i_ce, i_sample, o_result);
-	parameter		NTAPS=128, IW=12, TW=IW, OW=2*IW+7;
+	parameter		NTAPS=16, IW=9, TW=IW, OW=2*IW+5;
 	parameter [0:0]		FIXED_TAPS=0;
 	input	wire			i_clk, i_reset;
 	//
@@ -74,6 +74,8 @@ module	fastfir(i_clk, i_reset, i_tap_wr, i_tap, i_ce, i_sample, o_result);
 		assign	tap_wr = i_tap_wr;
 		assign	tap[0] = i_tap;
 	end
+
+	assign	tapout[0] = 0;
 
 	for(k=0; k<NTAPS; k=k+1)
 	begin: FILTER
@@ -109,5 +111,210 @@ module	fastfir(i_clk, i_reset, i_tap_wr, i_tap, i_ce, i_sample, o_result);
 	assign	unused = { i_tap_wr, i_tap };
 	// verilator lint_on UNUSED
 
+`ifdef	FORMAL
+`define	PHASE_ONE_ASSERT	assert
+`define	PHASE_TWO_ASSERT	assert
+
+`ifdef	PHASE_TWO
+`undef	PHASE_ONE_ASSERT
+`define	PHASE_ONE_ASSERT	assume
+`endif
+
+	reg	f_past_valid;
+	initial	f_past_valid = 1'b0;
+	always @(posedge i_clk)
+		f_past_valid <= 1'b1;
+
+
+	///////////////////////////
+	//
+	// Assumptions
+	//
+	///////////////////////////
+
+	always @(posedge i_clk)
+	if ((f_past_valid)&&(!$past(i_ce))
+			//&&($past(f_past_valid))&&(!$past(i_ce,2))
+			)
+		assume(i_ce);
+	// always @(*) if (!i_reset) assume(i_ce);
+
+	always @(posedge i_clk)
+	if ((!f_past_valid)||(i_reset)||($past(i_reset)))
+		assume(i_sample == 0);
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// The Contract
+//
+// 1. Given an impulse, either +/- 2^k, return an impulse response
+// 2. No overflowing
+//
+////////////////////////////////////////////////////////////////////////////////
+
+
+	wire	[IW-1:0]	f_impulse;
+	assign			f_impulse = $anyconst;
+	wire			f_is_impulse, f_sign;
+	wire	[4:0]		f_zeros;
+
+	integer	m;
+	always @(*)
+	begin
+		f_is_impulse = 1'b0;
+		f_zeros = 5'h0;
+		if (f_impulse == { 1'b1, {(IW-1){1'b0}}})
+			f_is_impulse = 1'b1;
+		else if (f_impulse == {(IW){1'b1}})
+			f_is_impulse = 1'b1;
+		else if (f_impulse[IW-1])
+		begin
+			// Signed impulse
+			for(m=0; m<IW-1; m=m+1)
+			begin
+				if (f_impulse == (-1 << m))
+				begin
+					f_is_impulse = 1'b1;
+					f_zeros = m;
+				end
+			end
+		end else begin
+			// Unsigned impulse
+			for(m=0; m<IW-1; m=m+1)
+			begin
+				if (f_impulse == (1 << m))
+				begin
+					f_is_impulse = 1'b1;
+					f_zeros = m;
+				end
+			end
+		end
+
+		f_sign = f_impulse[IW-1];
+		assume(f_is_impulse);
+	end
+
+	reg	[9:0]	f_counts_to_clear, f_counts_since_impulse;
+	initial	f_counts_to_clear = 0;
+	always @(posedge i_clk)
+	if (i_reset)
+		f_counts_to_clear <= 0;
+	else if (i_tap_wr)
+		f_counts_to_clear <= NTAPS;
+	else if (i_ce)
+	begin
+		if ((i_sample != 0)||(i_tap_wr))
+			f_counts_to_clear <= NTAPS;
+		else // if (i_sample == 0)
+			f_counts_to_clear <= f_counts_to_clear - 1'b1;
+	end
+
+	always @(*)
+	if (f_counts_to_clear == 0)
+		`PHASE_ONE_ASSERT((f_counts_since_impulse == 0)
+			||(f_counts_since_impulse>NTAPS));
+
+	initial	f_counts_since_impulse = 0;
+	always @(posedge i_clk)
+	if ((i_reset)||(!f_past_valid)||($past(i_reset))||(i_tap_wr))
+		f_counts_since_impulse <= 0;
+	else if (f_counts_since_impulse > NTAPS)
+		f_counts_since_impulse <= 0;
+	else if (i_ce)
+	begin
+		if ((i_sample != 0)&&(i_sample != f_impulse))
+			f_counts_since_impulse <= 0;
+		else if (i_sample == f_impulse)
+			f_counts_since_impulse <= (f_counts_to_clear == 0);
+		else if (f_counts_since_impulse > 0) // &&(i_sample == 0)
+			f_counts_since_impulse <= f_counts_since_impulse + 1'b1;
+	end
+
+
+	///////////////////////////////////////
+	//
+	// Verify no overflow
+	//
+	///////////////////////////////////////
+	always @(*)
+	begin
+		for(m=0; m<NTAPS; m=m+1)
+		begin
+			`PHASE_ONE_ASSERT((result[m][OW-1:OW-2] == 2'b00)
+				||(result[m][OW-1:OW-2] == 2'b11));
+		end
+		`PHASE_ONE_ASSERT((o_result[OW-1:OW-2] == 2'b00)
+			||(o_result[OW-1:OW-2] == 2'b11));
+	end
+
+	///////////////////////////////////////
+	//
+	// Verify the reset
+	//
+	///////////////////////////////////////
+	always @(posedge i_clk)
+	if ((!f_past_valid)||($past(i_reset)))
+	begin
+		for(m=1; m<NTAPS; m=m+1)
+			`PHASE_ONE_ASSERT(sample[m] == 0);
+
+		for(m=0; m<NTAPS; m=m+1)
+			`PHASE_ONE_ASSERT(result[m] == 0);
+
+		`PHASE_ONE_ASSERT(result[NTAPS] == 0);
+	end
+
+	always @(*)
+	begin
+		for(m=0; m<NTAPS; m=m+1)
+			`PHASE_ONE_ASSERT((f_counts_to_clear > m)||(result[NTAPS-1-m] == 0));
+	end
+
+	//////////////////////////////////////////////
+	always @(*)
+	if (f_counts_since_impulse > 0)
+		`PHASE_ONE_ASSERT(f_counts_to_clear == NTAPS + 1 - f_counts_since_impulse);
+
+
+`ifdef	PHASE_TWO
+	///////////////////////////////////////
+	//
+	// Verify the impulse response
+	//
+	///////////////////////////////////////
+	always @(posedge i_clk)
+	if ((!f_past_valid)||($past(i_reset)))
+		`PHASE_TWO_ASSERT(o_result == 0);
+	else if (!$past(i_ce))
+		`PHASE_TWO_ASSERT($stable(o_result));
+	else if ((f_counts_since_impulse > 1)&&(f_counts_since_impulse <= NTAPS))
+	begin
+		if (f_sign)
+			`PHASE_TWO_ASSERT(o_result == (-tapout[NTAPS-(f_counts_since_impulse-2)]<<f_zeros));
+		else
+			`PHASE_TWO_ASSERT(o_result == ( tapout[NTAPS-(f_counts_since_impulse-2)]<<f_zeros));
+	end
+
+
+	//
+	// Insure that our internal variables are properly set between the
+	// impulse and its output
+	//
+	always @(*)
+	if ((f_counts_since_impulse >= 2)&&(f_counts_since_impulse < 2+NTAPS))
+	begin
+	for(m=0; m<NTAPS; m=m+1)
+		if ((m >= (f_counts_since_impulse-2))&&(f_sign))
+			`PHASE_TWO_ASSERT(result[m+1]
+				== (-tapout[m-(f_counts_since_impulse-2)+1])<<f_zeros);
+		else if (m >= (f_counts_since_impulse-2))
+			`PHASE_TWO_ASSERT(result[m+1]
+				== (tapout[m-(f_counts_since_impulse-2)+1]<<f_zeros));
+		else
+			`PHASE_TWO_ASSERT(result[m+1] == 0);
+	end
+
+`endif // PHASE_TWO
+`endif // FORMAL
 endmodule
 

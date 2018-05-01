@@ -1,0 +1,22 @@
+[tasks]
+first
+second
+
+[options]
+mode prove
+depth 36
+
+[engines]
+smtbmc
+
+[script]
+read_verilog -formal firtap.v
+first:  read_verilog -formal fastfir.v
+second: read_verilog -formal -DPHASE_TWO fastfir.v
+read_verilog -formal abs_mpy.v
+prep -top fastfir
+
+[files]
+../../rtl/firtap.v
+../../rtl/fastfir.v
+abs_mpy.v

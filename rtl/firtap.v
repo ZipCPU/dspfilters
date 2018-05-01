@@ -101,6 +101,8 @@ module	firtap(i_clk, i_reset, i_tap_wr, i_tap, o_tap,
 
 	// Forward the sample on down the line, to be the input sample for the
 	// next component
+	initial	o_sample = 0;
+	initial	delayed_sample = 0;
 	always @(posedge i_clk)
 		if (i_reset)
 		begin
@@ -115,14 +117,29 @@ module	firtap(i_clk, i_reset, i_tap_wr, i_tap, o_tap,
 			o_sample <= delayed_sample;
 		end
 
+`ifndef	FORMAL
 	// Multiply the filter tap by the incoming sample
 	always @(posedge i_clk)
 		if (i_reset)
 			product <= 0;
 		else if (i_ce)
 			product <= o_tap * i_sample;
+`else
+	wire	[(TW+IW-1):0]	w_pre_product;
+
+	abs_mpy #(.AW(TW), .BW(IW), .OPT_SIGNED(1'b1))
+		abs_bypass(i_clk, i_reset, o_tap, i_sample, w_pre_product);
+
+	initial	product = 0;
+	always @(posedge i_clk)
+	if (i_reset)
+		product <= 0;
+	else if (i_ce)
+		product <= w_pre_product;
+`endif
 
 	// Continue summing together the output components of the FIR filter
+	initial	o_acc = 0;
 	always @(posedge i_clk)
 		if (i_reset)
 			o_acc <= 0;
