@@ -37,11 +37,12 @@
 //
 `default_nettype	none
 //
-module	iiravg(i_clk, i_ce, i_data, o_data);
+module	iiravg(i_clk, i_reset, i_ce, i_data, o_data);
 	parameter	IW=15, OW=16, LGALPHA=4;
+	parameter	[OW-1:0]	RESET_VALUE = 0;
 	localparam	AW=OW;
 	//
-	input	wire	i_clk, i_ce;
+	input	wire	i_clk, i_reset, i_ce;
 	input	wire	[(IW-1):0]	i_data;
 	output	wire	[(OW-1):0]	o_data;
 
@@ -53,8 +54,10 @@ module	iiravg(i_clk, i_ce, i_data, o_data);
 				difference[(AW-1):LGALPHA] };
 
 	always @(posedge i_clk)
-		if (i_ce)
-			r_average <= r_average + adjustment;
+	if (i_reset)
+		r_average = RESET_VALUE;
+	else if (i_ce)
+		r_average <= r_average + adjustment;
 
 	assign	o_data = r_average;
 
