@@ -55,11 +55,11 @@ module	lfsr_equiv(i_clk, i_reset, i_ce, i_in, o_bit);
 	lfsr_fib #(.LN(LN), .TAPS(FIB_TAPS), .INITIAL_FILL(INITIAL_FILL))
 		fib(i_clk, i_reset, i_ce, i_in, fib_bit);
 
-`ifdef	FORMAL
 	lfsr_gal #(.LN(LN), .TAPS(GAL_TAPS), .INITIAL_FILL(INITIAL_FILL))
 		gal(i_clk, i_reset, i_ce, i_in, gal_bit);
 
-	assign	o_bit = fib_bit;
+	assign	o_bit = fib_bit ^ gal_bit;
+`ifdef	FORMAL
 	always @(*)
 		assert(fib_bit == gal_bit);
 	always @(*)
