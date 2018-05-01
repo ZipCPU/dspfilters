@@ -4,18 +4,16 @@
 ##
 ## Project:	DSP Filtering Example Project
 ##
-## Purpose:	To test a group of Verilator modules: txuart (UART transmitter),
-##		rxuart (UART receiver/sink) and wbuart (UART module, containing
-##	both receiver and transmitter, with FIFOs, controlled via wishbone).
-##
-##
+## Purpose:	To test a group of Verilog DSP filters via Verilator wrappers.
+##		This file directs the compilation and build of several
+##	filtering test programs, to prove that the filters work.
 ##
 ## Creator:	Dan Gisselquist, Ph.D.
 ##		Gisselquist Technology, LLC
 ##
 ################################################################################
 ##
-## Copyright (C) 2017, Gisselquist Technology, LLC
+## Copyright (C) 2017-2018, Gisselquist Technology, LLC
 ##
 ## This program is free software (firmware): you can redistribute it and/or
 ## modify it under the terms of  the GNU General Public License as published
@@ -46,7 +44,7 @@ RTLD	:= ../../rtl
 VERILATOR_ROOT ?= $(shell bash -c 'verilator -V|grep VERILATOR_ROOT | head -1 | sed -e " s/^.*=\s*//"')
 VROOT   := $(VERILATOR_ROOT)
 INCS	:= -I$(RTLD)/obj_dir/ -I$(VROOT)/include -I../rtl/obj_dir
-PROGRAMS := genericfir_tb fastfir_tb boxcar_tb lfsr_gal_tb lfsr_fib_tb delayw_tb slowfil_tb # symfil_tb
+PROGRAMS := slowsymf_tb genericfir_tb fastfir_tb boxcar_tb lfsr_gal_tb lfsr_fib_tb delayw_tb slowfil_tb # symfil_tb
 SOURCES := $(addsuffix .cpp,$(PROGRAMS)) filtertb.cpp
 VOBJDR	:= $(RTLD)/obj_dir
 SYSVDR	:= $(VROOT)/include
@@ -70,6 +68,9 @@ fastfir_tb: $(OBJDIR)/fastfir_tb.o $(VLIB) $(VOBJDR)/Vfastfir__ALL.a
 	$(CXX) $(FLAGS) $(INCS) $^ -o $@
 
 slowfil_tb: $(OBJDIR)/slowfil_tb.o $(VLIB) $(VOBJDR)/Vslowfil__ALL.a
+	$(CXX) $(FLAGS) $(INCS) $^ -o $@
+
+slowsymf_tb: $(OBJDIR)/slowsymf_tb.o $(VLIB) $(VOBJDR)/Vslowsymf__ALL.a
 	$(CXX) $(FLAGS) $(INCS) $^ -o $@
 
 symfil_tb: $(OBJDIR)/symfil_tb.o $(VLIB) $(VOBJDR)/Vsymfil__ALL.a
