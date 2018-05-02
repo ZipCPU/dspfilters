@@ -4,7 +4,11 @@
 //
 // Project:	DSP Filtering Example Project
 //
-// Purpose:	
+// Purpose:	This module implements a slow, symmetric FIR filter.  The
+//		cofficients can be either fixed or dynamically set.  This
+//	implementation exploits the symmetry in the symmetric filter to use
+//	half as many multiplies as the slowfil.v module in this same
+//	repository.  It has the same calling convention as that one.
 //
 // Creator:	Dan Gisselquist, Ph.D.
 //		Gisselquist Technology, LLC

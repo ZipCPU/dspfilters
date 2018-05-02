@@ -4,7 +4,12 @@
 //
 // Project:	DSP Filtering Example Project
 //
-// Purpose:
+// Purpose:	A generic filter testing module to test a symmetric filter
+//		that takes many clock cycles per CE.  It's used for testing
+//	the slowsymf.v filter.  Tests include making certain that impulses
+//	do what they should, that a block filter has the proper impulse response
+//	and unit response.  The final test verifies whether a nice high quality
+//	lowpass filter works as intended.
 //
 // Creator:	Dan Gisselquist, Ph.D.
 //		Gisselquist Technology, LLC
