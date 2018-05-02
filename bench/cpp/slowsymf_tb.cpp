@@ -11,7 +11,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (C) 2017, Gisselquist Technology, LLC
+// Copyright (C) 2018, Gisselquist Technology, LLC
 //
 // This program is free software (firmware): you can redistribute it and/or
 // modify it under the terms of the GNU General Public License as published
@@ -53,13 +53,11 @@
 #include "twelvebfltr.h"
 
 const	unsigned IW = 16,
-		TW = 16,
+		TW = 12,
 		OW = IW+TW+7,
-		// NTAPS = 110,
-		// NTAPS = 127,
-		NTAPS = 7,
+		NTAPS = 107,
 		DELAY = 2,
-		CKPCE = 15; // NTAPS;
+		CKPCE = (NTAPS-1)/2+3;
 const	unsigned	MIDP = (NTAPS-1)/2;
 
 static	int     nextlg(int vl) {
@@ -118,31 +116,19 @@ printf("ODD of %d is %d\n", v, ov);
         void    testload(int nlen, long *data) {
 		load(nlen, data);
 
-printf("MIDPT = %d\n", MIDP);
-printf("NLEN  = %d\n", nlen);
-printf("NTAPS = %d\n", NTAPS());
-
-		assert(nlen == MIDP);
 
 		for(int k=0; k<2*NTAPS(); k++) {
 			int	m = (*this)[k];
-if ((k < NTAPS())||(m != 0))
-printf("FIR[%2d] = %d\n", k, m);
-		}
-/*
-		for(int k=0; k<2*NTAPS(); k++) {
-			int	m = (*this)[k];
 
-			if (k < midpt)
+			if ((unsigned)k < MIDP)
 				assert(data[k] == m);
-			else if (k == midpt)
-				assert(m == (1<<TW()));
+			else if (k == MIDP)
+				assert(m == (1<<(TW()-1))-1);
 			else if (k < NTAPS())
 				assert(m == data[NTAPS()-1-k]);
 			else
 				assert(m == 0);
 		}
-*/
         }
 
 };
@@ -153,7 +139,7 @@ int	main(int argc, char **argv) {
 	Verilated::commandArgs(argc, argv);
 	tb = new SLOWSYMF_TB();
 
-	const long	TAPVALUE = -(1<<(IW-1));
+	const long	TAPVALUE =  (1<<(TW-1))-1;
 	const long	IMPULSE  =  (1<<(IW-1))-1;
 
 	long	tapvec[NTAPS];
@@ -187,10 +173,10 @@ int	main(int argc, char **argv) {
 	//
 	// Block filter, impulse input
 	//
-	for(unsigned i=0; i<NTAPS; i++)
+	for(unsigned i=0; i<MIDP; i++)
 		tapvec[i] = TAPVALUE;
 
-	tb->testload(NTAPS, tapvec);
+	tb->testload(MIDP, tapvec);
 
 	for(unsigned i=0; i<2*NTAPS; i++)
 		ivec[i] = 0;
@@ -251,17 +237,18 @@ int	main(int argc, char **argv) {
 		assert(depth > -14);
 	}
 
-	assert(NCOEFFS < NTAPS);
-	for(int i=0; i<NCOEFFS; i++)
-		tapvec[i] = icoeffs[i];
+#ifdef	SYMMETRIC
+	assert(NCOEFFS <= NTAPS);
+	for(int i=0; i<SYMCOEF; i++)
+		tapvec[i] = symcoeffs[i];
 
 	// In case the filter is longer than the number of taps we have,
 	// we'll load zero any taps beyond the filters length.
-	for(int i=NCOEFFS; i<(int)NTAPS; i++)
+	for(int i=SYMCOEF; i<(int)NTAPS; i++)
 		tapvec[i] = 0;
 
 	printf("Low-pass filter test\n");
-	tb->testload(NTAPS, tapvec);
+	tb->testload(MIDP, tapvec);
 
 	{
 		double fp,      // Passband frequency cutoff
@@ -279,6 +266,7 @@ int	main(int argc, char **argv) {
 		assert(depth < -54);
 		assert(depth > -55);
 	}
+#endif
 	printf("SUCCESS\n");
 
 	exit(0);

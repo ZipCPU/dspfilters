@@ -38,10 +38,9 @@
 `default_nettype	none
 //
 module	slowsymf(i_clk, i_reset, i_tap_wr, i_tap, i_ce, i_sample, o_ce, o_result);
-	parameter			LGNTAPS = 3, IW=16, TW=16,
-					OW = IW+TW+7; // OW = IW+TW+LGNTAPS;
-	// parameter	[LGNTAPS:0]	NTAPS = 110;
-	parameter	[LGNTAPS:0]	NTAPS = (1<<LGNTAPS)-1;
+	parameter			LGNTAPS = 7, IW=16, TW=12,
+					OW = IW+TW+LGNTAPS;
+	parameter	[LGNTAPS:0]	NTAPS = 107;
 	parameter	[0:0]		FIXED_TAPS = 1'b0;
 	parameter			INITIAL_COEFFS  = "";
 	// // //
@@ -74,15 +73,16 @@ module	slowsymf(i_clk, i_reset, i_tap_wr, i_tap, i_ce, i_sample, o_ce, o_result)
 	reg	[(TW-1):0]	tapmem	[0:(MEMSZ-1)];	// Coef memory
 	reg signed [(TW-1):0]	tap;		// Value read from coef memory
 
-	reg	[(LGNMEM-1):0]	dwidx, didx;	// Data write and read indices
+	reg	[(LGNMEM-1):0]	dwidx, lidx, ridx;// Data write and read indices
 	reg	[(LGNMEM-1):0]	tidx;		// Coefficient read index
 	reg	[(IW-1):0]	dmem1	[0:(MEMSZ-1)];	// Data memory
 	reg	[(IW-1):0]	dmem2	[0:(MEMSZ-1)];	// Data memory
 	// Data value read from memory, and then summed together
-	reg signed [(IW-1):0]	dleft, dright, dsum, mid_sample;
+	reg signed [(IW-1):0]	dleft, dright, mid_sample;
+	reg signed [IW:0]	dsum;
 
 	// Traveling CE values
-	reg	d_ce, s_ce, p_ce, m_ce;
+	reg	m_ce, d_ce, s_ce;
 	//
 	// The product and accumulator values for the filter
 	reg	signed [(IW+TW-1):0]	product;
@@ -144,8 +144,9 @@ module	slowsymf(i_clk, i_reset, i_tap_wr, i_tap, i_ce, i_sample, o_ce, o_result)
 	if (i_ce)
 		dmem2[dwidx] <= mid_sample;
 	always @(posedge i_clk)
-	// if (i_ce)
-	if (d_ce)
+	if (i_reset)
+		mid_sample <= 0;
+	else if (i_ce)
 		mid_sample <= dleft;
 
 
@@ -157,8 +158,12 @@ module	slowsymf(i_clk, i_reset, i_tap_wr, i_tap, i_ce, i_sample, o_ce, o_result)
 
 	// Determine if the next clock (not this one) will contain the last
 	// valid index, and so whether or not we need to stop.
-	wire	last_tap_index;
-	assign	last_tap_index = (NTAPS[LGNTAPS-2:0]-tidx <= 1);
+	wire	last_tap_index, last_data_index;
+	wire	[LGNTAPS-2:0]	taps_left;
+
+	assign	taps_left = (NTAPS[LGNTAPS-1:1]-tidx);
+	assign	last_tap_index = (taps_left <= 1);
+	assign	last_data_index= (NTAPS[LGNTAPS-1:1]-tidx <= 2);
 	// The pre_acc_ce traveling CE values keep track of when the
 	// results of reading memory are valid at the accumulation section
 	// of this code later on.
@@ -171,7 +176,7 @@ module	slowsymf(i_clk, i_reset, i_tap_wr, i_tap, i_ce, i_sample, o_ce, o_result)
 		pre_acc_ce[0] <= 1'b1;
 	else if ((pre_acc_ce[0])&&(!last_tap_index))
 		pre_acc_ce[0] <= 1'b1;
-	else
+	else if (!m_ce)
 		pre_acc_ce[0] <= 1'b0;
 	// pre_acc_ce[0] means the data index is valid
 	// pre_acc_ce[1] means the data values are valid, tap index is valid
@@ -182,52 +187,76 @@ module	slowsymf(i_clk, i_reset, i_tap_wr, i_tap, i_ce, i_sample, o_ce, o_result)
 	if (i_reset)
 		pre_acc_ce[3:1] <= 3'b0;
 	else
-		pre_acc_ce[3:1] <= pre_acc_ce[2:0];
+		pre_acc_ce[3:1] <= { pre_acc_ce[2:1],
+			((m_ce)||((pre_acc_ce[0])&&(!last_tap_index))) };
 
-	initial	didx = 0;
-	initial	tidx = 0;
+	initial	lidx = 0;
+	initial	ridx = 0;
 	always @(posedge i_clk)
-	if (i_ce)
+	if (i_reset)
 	begin
-		didx <= dwidx; // Oldest value
-	//	didx <= dwidx-1; // Newest value
-		didx <= dwidx-HALFTAPS[LGNMEM-1:0];
-		tidx <= 0;
-	end else if ((m_ce)||(d_ce)) begin
-		didx <= didx - 1'b1;
-		tidx <= 0;
-	end else if (!last_tap_index) begin
-		didx <= didx - 1'b1;
-		tidx <= tidx + 1'b1;
+		lidx <= 0;
+		ridx <= 0;
+	end else if (i_ce)
+	begin
+		lidx <= dwidx; // Newest value
+		ridx <= dwidx-(HALFTAPS[LGNMEM-1:0])+1;
+	end else if ((m_ce)||(!last_data_index))
+	begin
+		lidx <= lidx - 1'b1;
+		ridx <= ridx + 1'b1;
 	end
 
-	// m_ce is valid when the first index is valid
-	initial	m_ce = 1'b0;
+
+	initial	tidx = 0;
 	always @(posedge i_clk)
-		m_ce <= (i_ce)&&(!i_reset);
+	if (i_reset)
+		tidx <= 0;
+	else if (m_ce)
+		tidx <= 0;
+	else if (!last_tap_index)
+		tidx <= tidx + 1'b1;
 
 	//
 	//
 	// Read from memory cycle
 	//
 	//
-	initial	tap = 0;
+
+	//
+	// m_ce is the memory strobe.  It is true when the first index is valid
+	initial	m_ce = 1'b0;
 	always @(posedge i_clk)
-		tap <= tapmem[tidx[(LGNTAPS-2):0]];
+		m_ce <= (i_ce)&&(!i_reset);
 
 	initial	dleft  = 0;
 	initial	dright = 0;
 	always @(posedge i_clk)
 	begin
-		dleft  <= dmem1[ didx];
-		dright <= dmem2[2-didx];
-		dsum   <= dleft + dright;
+		// dleft  <= dmem1[ didx[LGNMEM-1:0]];
+		// dright <= dmem2[~didx[LGNMEM-1:0]];
+		dleft  <= dmem1[lidx];
+		dright <= dmem2[ridx];
 	end
 
+	//
+	// Summation cycle, and read coefficient from memory
+	//
 	// d_ce is valid when the first data from memory is read/valid
 	initial	d_ce = 0;
 	always @(posedge i_clk)
 		d_ce <= (m_ce)&&(!i_reset);
+
+	initial	tap = 0;
+	always @(posedge i_clk)
+		tap <= tapmem[tidx[(LGNTAPS-2):0]];
+
+	initial	dsum = 0;
+	always @(posedge i_clk)
+	if (i_reset)
+		dsum <= 0;
+	else
+		dsum   <= dleft + dright;
 
 	// s_ce is valid when the first data sum is valid
 	initial	s_ce = 0;
@@ -237,11 +266,6 @@ module	slowsymf(i_clk, i_reset, i_tap_wr, i_tap, i_ce, i_sample, o_ce, o_result)
 	//
 	// Apply the product to the tap and data just read
 	//
-	// p_ce is valid on the first valid product
-	initial	p_ce = 1'b0;
-	always @(posedge i_clk)
-		p_ce <= (s_ce)&&(!i_reset);
-
 	initial	product = 0;
 	always @(posedge i_clk)
 		product <= tap * dsum;
@@ -249,16 +273,21 @@ module	slowsymf(i_clk, i_reset, i_tap_wr, i_tap, i_ce, i_sample, o_ce, o_result)
 	reg	[OW-1:0]	midprod;
 	initial	midprod = 0;
 	always @(posedge i_clk)
-		midprod <= { {(OW-IW-TW){mid_sample[IW-1]}},
-					mid_sample, {(TW){1'b0}}}
+	if (i_reset)
+		midprod <= 0;
+	else if (m_ce)
+		midprod <= { {(OW-IW-TW+1){mid_sample[IW-1]}},
+					mid_sample, {(TW-1){1'b0}}}
 				- {{(OW-IW){mid_sample[IW-1]}}, mid_sample};
 
 	initial	r_acc = 0;
 	always @(posedge i_clk)
-		if (p_ce)
-			r_acc <= midprod;
-		else if (pre_acc_ce[3])
-			r_acc <= r_acc + { {(OW-(IW+TW)){product[(IW+TW-1)]}},
+	if (i_reset)
+		r_acc <= 0;
+	else if (s_ce)
+		r_acc <= midprod;
+	else if (pre_acc_ce[3])
+		r_acc <= r_acc + { {(OW-(IW+TW)){product[(IW+TW-1)]}},
 						product };
 
 	//
@@ -268,10 +297,11 @@ module	slowsymf(i_clk, i_reset, i_tap_wr, i_tap, i_ce, i_sample, o_ce, o_result)
 	//
 	initial	o_result = 0;
 	always @(posedge i_clk)
-		if (p_ce)
+		if (s_ce)
 			o_result <= r_acc;
 
 	initial	o_ce = 1'b0;
 	always @(posedge i_clk)
-		o_ce <= (p_ce)&&(!i_reset);
+		o_ce <= (s_ce)&&(!i_reset);
+
 endmodule
