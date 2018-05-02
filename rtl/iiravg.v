@@ -55,7 +55,7 @@ module	iiravg(i_clk, i_reset, i_ce, i_data, o_data);
 
 	always @(posedge i_clk)
 	if (i_reset)
-		r_average = RESET_VALUE;
+		r_average <= RESET_VALUE;
 	else if (i_ce)
 		r_average <= r_average + adjustment;
 
