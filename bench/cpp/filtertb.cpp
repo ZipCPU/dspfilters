@@ -292,13 +292,14 @@ template<class VFLTR> void	FILTERTB<VFLTR>::response(int nfreq,
 			theta=0.;
 		hk = 0;
 
-		if (debug)
+		if (debug) {
 			theta = 0.;
 			for(int j=0; j<nlen; j++) {
 				double	dv = cos(theta);
-				real(hk) += dv * (*this)[j];
+				hk.real(hk.real() + dv * (*this)[j]);
 				theta -= dtheta;
 			}
+		}
 
 		theta = -(NTAPS()-1) * dtheta;
 		for(int j=0; j<nlen; j++) {
@@ -309,19 +310,20 @@ template<class VFLTR> void	FILTERTB<VFLTR>::response(int nfreq,
 		}
 
 		test(nlen, data);
-		real(rvec[i])  = data[nlen-1] / mag;
+		rvec[i].real(data[nlen-1] / mag);
 
 		// Repeat what should produce the same response, but using
 		// a 90 degree phase offset.  Do this for all but the zero
 		// frequency
 		if (i > 0) {
-			if (debug)
+			if (debug) {
 				theta = 0.;
 				for(int j=0; j<2*nlen; j++) {
 					double	dv = sin(theta);
-					imag(hk) += dv * (*this)[j];
+					hk.imag(hk.imag() + dv * (*this)[j]);
 					theta -= dtheta;
 				}
+			}
 
 			theta = -(NTAPS()-1) * dtheta;
 			for(int j=0; j<nlen; j++) {
@@ -332,7 +334,7 @@ template<class VFLTR> void	FILTERTB<VFLTR>::response(int nfreq,
 			}
 
 			test(nlen, data);
-			imag(rvec[i])  = data[nlen-1] / mag;
+			rvec[i].imag(data[nlen-1] / mag);
 		}
 
 		if (debug)

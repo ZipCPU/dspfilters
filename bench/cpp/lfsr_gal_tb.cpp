@@ -49,6 +49,14 @@
 #include "verilated_vcd_c.h"
 #include "Vlfsr_gal.h"
 
+#ifdef	OLD_VERILATOR
+#define	VVAR(A)	v__DOT_ ## A
+#else
+#define	VVAR(A)	lfsr_gal__DOT_ ## A
+#endif
+
+#define	sreg	VVAR(_sreg)
+
 int	main(int argc, char **argv) {
 	Verilated::commandArgs(argc, argv);
 	Vlfsr_gal	tb;
@@ -81,7 +89,7 @@ int	main(int argc, char **argv) {
 	tb.eval();
 	TRACE_NEGEDGE;
 
-	assert(tb.v__DOT__sreg == 1);
+	assert(tb.sreg == 1);
 
 	while(clocks < 16*32*32) {
 		int	ch;
@@ -107,12 +115,12 @@ int	main(int argc, char **argv) {
 		}
 		clocks++;
 
-		if (tb.v__DOT__sreg == 1)
+		if (tb.sreg == 1)
 			break;
 	}
 	TRACE_CLOSE;
 
-	while(tb.v__DOT__sreg != 1) {
+	while(tb.sreg != 1) {
 		tb.i_clk = 1;
 		tb.eval();
 		tb.i_clk = 0;
