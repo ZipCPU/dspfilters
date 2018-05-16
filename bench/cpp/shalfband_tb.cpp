@@ -116,19 +116,22 @@ printf("ODD of %d is %d\n", v, ov);
 	}
 
         void    testload(int nlen, long *data) {
+		bool	debug = false;
 		load(nlen, data);
 
 
-		for(int k=0; k<2*NTAPS(); k++) {
-			int	m = (*this)[k];
+		if (debug) {
+			for(int k=0; k<2*NTAPS(); k++) {
+				int	m = (*this)[k];
 
-			if ((k&1)&&((unsigned)k<MIDP))
+				if ((k&1)&&((unsigned)k<MIDP))
+					printf("FIR[%3d] = %08x\n", k, m);
+				else if ((unsigned)k < MIDP)
+					printf("FIR[%3d] = %08x, LOAD[%3d/%d] = %08lx, MIDP=%d\n",
+						k, m, (int)(k/2), nlen, data[k/2], MIDP);
+				else if ((k<NTAPS())||(m != 0))
 				printf("FIR[%3d] = %08x\n", k, m);
-			else if ((unsigned)k < MIDP)
-				printf("FIR[%3d] = %08x, LOAD[%3d/%d] = %08lx, MIDP=%d\n",
-					k, m, (int)(k/2), nlen, data[k/2], MIDP);
-			else if ((k<NTAPS())||(m != 0))
-			printf("FIR[%3d] = %08x\n", k, m);
+			}
 		}
 
 		for(int k=0; k<2*NTAPS(); k++) {
