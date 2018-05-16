@@ -1,15 +1,10 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Filename:	slowsymf_tb.cpp
+// Filename:	shalfband_tb.cpp
 //
 // Project:	DSP Filtering Example Project
 //
-// Purpose:	A generic filter testing module to test a symmetric filter
-//		that takes many clock cycles per CE.  It's used for testing
-//	the slowsymf.v filter.  Tests include making certain that impulses
-//	do what they should, that a block filter has the proper impulse response
-//	and unit response.  The final test verifies whether a nice high quality
-//	lowpass filter works as intended.
+// Purpose:	Slow, half-band (or Hilbert) filter test.
 //
 // Creator:	Dan Gisselquist, Ph.D.
 //		Gisselquist Technology, LLC
@@ -49,7 +44,7 @@
 
 #include "verilated.h"
 #include "verilated_vcd_c.h"
-#include "Vslowsymf.h"
+#include "Vshalfband.h"
 #include "testb.h"
 
 // #define	FILTER_HAS_O_CE
@@ -63,7 +58,9 @@ const	unsigned IW = 16,
 		NTAPS = 107,
 		DELAY = 2,
 		CKPCE = (NTAPS-1)/2+3;
-const	unsigned	MIDP = (NTAPS-1)/2;
+const	unsigned	MIDP = (NTAPS-1)/2,
+		QTRP = MIDP/2+1;
+const	bool	OPT_HILBERT = false;
 
 static	int     nextlg(int vl) {
 	int     r;
@@ -73,11 +70,11 @@ static	int     nextlg(int vl) {
 	return r;
 }
 
-class	SLOWSYMF_TB : public FILTERTB<Vslowsymf> {
+class	SHALFBAND_TB : public FILTERTB<Vshalfband> {
 public:
 	bool		m_done;
 
-	SLOWSYMF_TB(void) {
+	SHALFBAND_TB(void) {
 		IW(::IW);
 		TW(::TW);
 		OW(::OW);
@@ -95,12 +92,12 @@ printf("ODD of %d is %d\n", v, ov);
 	}
 	void	test(int nlen, long *data) {
 		clear_filter();
-		FILTERTB<Vslowsymf>::test(nlen, data);
+		FILTERTB<Vshalfband>::test(nlen, data);
 	}
 
 	void	load(int nlen, long *data) {
 		reset();
-		FILTERTB<Vslowsymf>::load(nlen, data);
+		FILTERTB<Vshalfband>::load(nlen, data);
 	}
 
 	void	clear_filter(void) {
@@ -125,136 +122,91 @@ printf("ODD of %d is %d\n", v, ov);
 		for(int k=0; k<2*NTAPS(); k++) {
 			int	m = (*this)[k];
 
-			if ((unsigned)k < MIDP)
-				assert(data[k] == m);
+			if ((k&1)&&((unsigned)k<MIDP))
+				printf("FIR[%3d] = %08x\n", k, m);
+			else if ((unsigned)k < MIDP)
+				printf("FIR[%3d] = %08x, LOAD[%3d/%d] = %08lx, MIDP=%d\n",
+					k, m, (int)(k/2), nlen, data[k/2], MIDP);
+			else if ((k<NTAPS())||(m != 0))
+			printf("FIR[%3d] = %08x\n", k, m);
+		}
+
+		for(int k=0; k<2*NTAPS(); k++) {
+			int	m = (*this)[k];
+
+			if ((k&1)&&((unsigned)k<MIDP))
+				assert(m == 0);
+			else if ((unsigned)k < MIDP)
+				assert(data[k/2] == m);
 			else if (k == MIDP)
 				assert(m == (1<<(TW()-1))-1);
-			else if (k < NTAPS())
-				assert(m == data[NTAPS()-1-k]);
-			else
+			else if ((k < NTAPS())&&(((k-MIDP)&1)==0))
+				assert(m == 0);
+			else if (k < NTAPS()) {
+				if (OPT_HILBERT)
+					assert(m == -data[((NTAPS()-1-k))/2]);
+				else
+					assert(m ==  data[((NTAPS()-1-k))/2]);
+			} else
 				assert(m == 0);
 		}
         }
 
 };
 
-SLOWSYMF_TB	*tb;
+SHALFBAND_TB	*tb;
 
 int	main(int argc, char **argv) {
 	Verilated::commandArgs(argc, argv);
-	tb = new SLOWSYMF_TB();
+	tb = new SHALFBAND_TB();
 
+	assert((NTAPS & 3)==3);
 	const long	TAPVALUE =  (1<<(TW-1))-1;
-	const long	IMPULSE  =  (1<<(IW-1))-1;
+	// const long	IMPULSE  =  (1<<(IW-1))-1;
 
 	long	tapvec[NTAPS];
-	long	ivec[2*NTAPS];
+	// long	ivec[2*NTAPS];
 
-	// tb->opentrace("trace.vcd");
+	tb->opentrace("trace.vcd");
 	tb->reset();
 
 	printf("Impulse tests\n");
-	for(unsigned k=0; k<NTAPS/2+1; k++) {
+	for(unsigned k=0; k<NTAPS/4+1; k++) {
 		//
 		// Create a new coefficient vector
 		//
 		// Initialize it with all zeros
-		for(unsigned i=0; i<MIDP; i++)
+		for(unsigned i=0; i<QTRP; i++)
 			tapvec[i] = 0;
 		// Then set one value to non-zero
 		tapvec[k] = TAPVALUE;
 
 		// Test whether or not this coefficient vector
 		// loads properly into the filter
-		tb->testload(MIDP, tapvec);
+		tb->testload(QTRP, tapvec);
+//		tb->testload(NTAPS, tapvec);
 
 		// Then test whether or not the filter overflows
 		tb->test_overflow();
 	}
 
-	printf("Block Fil, Impulse input\n");
+#ifdef	HALFBAND
+	if (!OPT_HILBERT) {
+		assert(NCOEFFS <= NTAPS);
+		for(int i=0; i<HALFCOEF; i++)
+			tapvec[i] = halfcoef[i];
 
-	//
-	// Block filter, impulse input
-	//
-	for(unsigned i=0; i<MIDP; i++)
-		tapvec[i] = TAPVALUE;
+		// In case the filter is longer than the number of taps we have,
+		// we'll load zero any taps beyond the filters length.
+		for(int i=HALFCOEF; i<(int)NTAPS; i++)
+			tapvec[i] = 0;
 
-	tb->testload(MIDP, tapvec);
+		assert(HALFCOEF == QTRP);
 
-	for(unsigned i=0; i<2*NTAPS; i++)
-		ivec[i] = 0;
-	ivec[0] = IMPULSE;
+		printf("Low-pass filter test\n");
+		tb->testload(QTRP, tapvec);
 
-	tb->test(2*NTAPS, ivec);
-
-	for(unsigned i=0; i<NTAPS; i++)
-		assert(ivec[i] == IMPULSE * TAPVALUE);
-	for(unsigned i=NTAPS; i<2*NTAPS; i++)
-		assert(0 == ivec[i]);
-
-	//
-	//
-	// Block filter, block input
-	// Set every element of an array to the same value
-	printf("Block Fil, block input\n");
-	for(unsigned i=0; i<2*NTAPS; i++)
-		ivec[i] = IMPULSE;
-
-	// Now apply this vector to the filter
-	tb->test(2*NTAPS, ivec);
-
-	for(unsigned i=0; i<NTAPS; i++) {
-		long	expected = (long)(i+1l)*IMPULSE * TAPVALUE;
-		if (ivec[i] != expected) {
-			printf("OUT[%3d] = %12ld != (i+1)*IMPULSE*TAPVALUE = %12ld\n",
-				i, ivec[i], expected);
-			assert(ivec[i] == expected);
-		}
-	}
-	for(unsigned i=0; i<NTAPS; i++) {
-		long	expected = NTAPS*IMPULSE * TAPVALUE;
-		if (ivec[NTAPS+i] != expected) {
-			printf("OUT[%3d] = %12ld != NTAPS*IMPULSE*TAPVALUE = %12ld\n",
-				i+NTAPS, ivec[i+NTAPS], expected);
-			assert(ivec[NTAPS+i] == expected);
-		}
-	}
-
-	assert(tb->test_overflow());
-
-	{
-		double fp,      // Passband frequency cutoff
-			fs,     // Stopband frequency cutoff,
-			depth,  // Depth of the stopband
-			ripple; // Maximum deviation within the passband
-
-		tb->measure_lowpass(fp, fs, depth, ripple);
-		printf("FP     = %f\n", fp);
-		printf("FS     = %f\n", fs);
-		printf("DEPTH  = %6.2f dB\n", depth);
-		printf("RIPPLE = %.2g\n", ripple);
-
-		// The depth of the filter should be between -14 and -13.
-		// assert() that here.
-		assert(depth < -13);
-		assert(depth > -14);
-	}
-
-#ifdef	SYMMETRIC
-	assert(NCOEFFS <= NTAPS);
-	for(int i=0; i<SYMCOEF; i++)
-		tapvec[i] = symcoeffs[i];
-
-	// In case the filter is longer than the number of taps we have,
-	// we'll load zero any taps beyond the filters length.
-	for(int i=SYMCOEF; i<(int)NTAPS; i++)
-		tapvec[i] = 0;
-
-	printf("Low-pass filter test\n");
-	tb->testload(MIDP, tapvec);
-
-	{
+		{
 		double fp,      // Passband frequency cutoff
 			fs,     // Stopband frequency cutoff,
 			depth,  // Depth of the stopband
@@ -269,6 +221,7 @@ int	main(int argc, char **argv) {
 		// The depth of this stopband should be between -55 and -54 dB
 		assert(depth < -54);
 		assert(depth > -55);
+		}
 	}
 #endif
 	printf("SUCCESS\n");
