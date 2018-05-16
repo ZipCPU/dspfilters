@@ -44,7 +44,7 @@ RTLD	:= ../../rtl
 VERILATOR_ROOT ?= $(shell bash -c 'verilator -V|grep VERILATOR_ROOT | head -1 | sed -e " s/^.*=\s*//"')
 VROOT   := $(VERILATOR_ROOT)
 INCS	:= -I$(RTLD)/obj_dir/ -I$(VROOT)/include -I../rtl/obj_dir
-PROGRAMS := slowsymf_tb genericfir_tb fastfir_tb boxcar_tb lfsr_gal_tb lfsr_fib_tb delayw_tb slowfil_tb # symfil_tb
+PROGRAMS := slowsymf_tb genericfir_tb fastfir_tb boxcar_tb lfsr_gal_tb lfsr_fib_tb delayw_tb slowfil_tb shalfband_tb # symfil_tb
 SOURCES := $(addsuffix .cpp,$(PROGRAMS)) filtertb.cpp
 VOBJDR	:= $(RTLD)/obj_dir
 SYSVDR	:= $(VROOT)/include
@@ -71,6 +71,9 @@ slowfil_tb: $(OBJDIR)/slowfil_tb.o $(VLIB) $(VOBJDR)/Vslowfil__ALL.a
 	$(CXX) $(FLAGS) $(INCS) $^ -o $@
 
 slowsymf_tb: $(OBJDIR)/slowsymf_tb.o $(VLIB) $(VOBJDR)/Vslowsymf__ALL.a
+	$(CXX) $(FLAGS) $(INCS) $^ -o $@
+
+shalfband_tb: $(OBJDIR)/shalfband_tb.o $(VLIB) $(VOBJDR)/Vshalfband__ALL.a
 	$(CXX) $(FLAGS) $(INCS) $^ -o $@
 
 symfil_tb: $(OBJDIR)/symfil_tb.o $(VLIB) $(VOBJDR)/Vsymfil__ALL.a
