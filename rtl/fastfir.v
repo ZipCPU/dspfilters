@@ -168,10 +168,14 @@ module	fastfir(i_clk, i_reset, i_tap_wr, i_tap, i_ce, i_sample, o_result);
 		f_is_impulse = 1'b0;
 		f_zeros = 5'h0;
 		if (f_impulse == { 1'b1, {(IW-1){1'b0}}})
+		begin
 			f_is_impulse = 1'b1;
-		else if (f_impulse == {(IW){1'b1}})
+			f_zeros = IW-1;
+		end else if (f_impulse == {(IW){1'b1}})
+		begin
 			f_is_impulse = 1'b1;
-		else if (f_impulse[IW-1])
+			f_zeros = 0;
+		end else if (f_impulse[IW-1])
 		begin
 			// Signed impulse
 			for(m=0; m<IW-1; m=m+1)
@@ -300,25 +304,43 @@ module	fastfir(i_clk, i_reset, i_tap_wr, i_tap, i_ce, i_sample, o_result);
 	end
 
 
+	wire	[IW+TW-1:0]	widetaps	[0:NTAPS];
+	wire	[IW+TW-1:0]	staps		[0:NTAPS];
+	genvar	gk;
+
+	generate begin for(gk=0; gk <= NTAPS; gk=gk+1)
+	begin
+
+		assign	widetaps[gk] = { {(IW){tapout[gk][TW-1]}}, tapout[gk][TW-1:0] };
+		assign	staps[gk] = widetaps[gk] << f_zeros;
+
+	end end endgenerate
+
 	//
 	// Insure that our internal variables are properly set between the
 	// impulse and its output
 	//
 	always @(*)
+	begin
 	if ((f_counts_since_impulse >= 2)&&(f_counts_since_impulse < 2+NTAPS))
 	begin
 	for(m=0; m<NTAPS; m=m+1)
 		if ((m >= (f_counts_since_impulse-2))&&(f_sign))
 			`PHASE_TWO_ASSERT(result[m+1]
-				== (-tapout[m-(f_counts_since_impulse-2)+1])<<f_zeros);
+				== (-staps[m-(f_counts_since_impulse-2)+1]));
 		else if (m >= (f_counts_since_impulse-2))
 			`PHASE_TWO_ASSERT(result[m+1]
-				== (tapout[m-(f_counts_since_impulse-2)+1]<<f_zeros));
+				== (staps[m-(f_counts_since_impulse-2)+1]));
 		else
 			`PHASE_TWO_ASSERT(result[m+1] == 0);
 	end
-
 `endif // PHASE_TWO
+	always @(*)
+	if (i_tap_wr)
+		assume(i_reset);
+	always @(posedge i_clk)
+	if ((f_past_valid)&&($past(i_tap_wr)))
+		assume(i_reset);
 `endif // FORMAL
 endmodule
 

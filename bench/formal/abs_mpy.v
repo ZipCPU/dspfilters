@@ -59,7 +59,7 @@ module	abs_mpy(i_clk,i_reset, i_a, i_b, o_result);
 	always @(*)
 	begin
 		u_a = ((i_a[AW-1])&&(OPT_SIGNED)) ? -i_a : i_a;
-		u_b = ((i_a[AW-1])&&(OPT_SIGNED)) ? -i_b : i_b;
+		u_b = ((i_b[BW-1])&&(OPT_SIGNED)) ? -i_b : i_b;
 	end
 
 	reg	[(AW+BW-1):0]	u_result;
