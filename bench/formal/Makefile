@@ -15,7 +15,7 @@
 ##
 ################################################################################
 ##
-## Copyright (C) 2017, Gisselquist Technology, LLC
+## Copyright (C) 2017-2018, Gisselquist Technology, LLC
 ##
 ## This program is free software (firmware): you can redistribute it and/or
 ## modify it under the terms of  the GNU General Public License as published
@@ -38,7 +38,7 @@
 ################################################################################
 ##
 ##
-TESTS := lfsr lfsr_equiv
+TESTS := lfsr lfsr_equiv fastfir
 .PHONY: $(TESTS)
 all: $(TESTS)
 RTL := ../../rtl
@@ -46,6 +46,7 @@ RTL := ../../rtl
 LFSR=lfsr
 EQUIV=lfsr_equiv
 DELAY=delayw
+FFIR=fastfir
 
 SMTBMC  := yosys-smtbmc
 # SOLVER  := -s z3
@@ -87,9 +88,14 @@ $(DELAY).check: $(DELAY).smt2
 	$(SMTBMC) -g       $(ARGS) -t 120 --dump-vcd $(DELAY).vcd $(DELAY).smt2
 	touch $@
 
+$(FFIR) : $(FFIR).check
+$(FFIR).check: ../../rtl/$(FFIR).v $(FFIR).sby
+	sby -f $(FFIR).sby
+	touch $@
 
 clean:
-	rm -f $(LFSR).smt2   $(LFSR)*.vcd  $(LFSR).yslog
-	rm -f $(EQUIV).smt2  $(EQUIV)*.vcd $(EQUIV).yslog
-	rm -f $(DELAY).smt2  $(DELAY)*.vcd $(DELAY).yslog
-	rm -f *.check
+	rm -f  $(LFSR).smt2   $(LFSR)*.vcd  $(LFSR).yslog
+	rm -f  $(EQUIV).smt2  $(EQUIV)*.vcd $(EQUIV).yslog
+	rm -f  $(DELAY).smt2  $(DELAY)*.vcd $(DELAY).yslog
+	rm -rf $(FFIR)/
+	rm -f  *.check
