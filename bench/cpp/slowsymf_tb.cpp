@@ -93,12 +93,12 @@ public:
 printf("ODD of %d is %d\n", v, ov);
 		return ov;
 	}
-	void	test(int nlen, long *data) {
+	void	test(int nlen, int64_t *data) {
 		clear_filter();
 		FILTERTB<Vslowsymf>::test(nlen, data);
 	}
 
-	void	load(int nlen, long *data) {
+	void	load(int nlen, int64_t *data) {
 		reset();
 		FILTERTB<Vslowsymf>::load(nlen, data);
 	}
@@ -118,7 +118,7 @@ printf("ODD of %d is %d\n", v, ov);
 			tick();
 	}
 
-        void    testload(int nlen, long *data) {
+        void    testload(int nlen, int64_t *data) {
 		load(nlen, data);
 
 
@@ -144,11 +144,11 @@ int	main(int argc, char **argv) {
 	Verilated::commandArgs(argc, argv);
 	tb = new SLOWSYMF_TB();
 
-	const long	TAPVALUE =  (1<<(TW-1))-1;
-	const long	IMPULSE  =  (1<<(IW-1))-1;
+	const int64_t	TAPVALUE =  (1<<(TW-1))-1;
+	const int64_t	IMPULSE  =  (1<<(IW-1))-1;
 
-	long	tapvec[NTAPS];
-	long	ivec[2*NTAPS];
+	int64_t	tapvec[NTAPS];
+	int64_t	ivec[2*NTAPS];
 
 	// tb->opentrace("trace.vcd");
 	tb->reset();
@@ -205,7 +205,7 @@ int	main(int argc, char **argv) {
 	tb->test(2*NTAPS, ivec);
 
 	for(unsigned i=0; i<NTAPS; i++) {
-		long	expected = (long)(i+1l)*IMPULSE * TAPVALUE;
+		int64_t	expected = (int64_t)(i+1l)*IMPULSE * TAPVALUE;
 		if (ivec[i] != expected) {
 			printf("OUT[%3d] = %12ld != (i+1)*IMPULSE*TAPVALUE = %12ld\n",
 				i, ivec[i], expected);
@@ -213,7 +213,7 @@ int	main(int argc, char **argv) {
 		}
 	}
 	for(unsigned i=0; i<NTAPS; i++) {
-		long	expected = NTAPS*IMPULSE * TAPVALUE;
+		int64_t	expected = NTAPS*IMPULSE * TAPVALUE;
 		if (ivec[NTAPS+i] != expected) {
 			printf("OUT[%3d] = %12ld != NTAPS*IMPULSE*TAPVALUE = %12ld\n",
 				i+NTAPS, ivec[i+NTAPS], expected);

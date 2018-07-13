@@ -11,7 +11,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (C) 2017, Gisselquist Technology, LLC
+// Copyright (C) 2017-2018, Gisselquist Technology, LLC
 //
 // This program is free software (firmware): you can redistribute it and/or
 // modify it under the terms of  the GNU General Public License as published
@@ -100,11 +100,11 @@ public:
 		}
 	}
 
-	void	apply(int nlen, long *data) {
+	void	apply(int nlen, int64_t *data) {
 		PARENTTB::apply(nlen, data);
 	}
 
-	void	load(int nlen, long *data) {
+	void	load(int nlen, int64_t *data) {
 		PARENTTB::m_core->i_reset = 0;
 		PARENTTB::m_core->i_ce    = 0;
 		PARENTTB::m_core->i_tap_wr= 1;
@@ -115,7 +115,7 @@ public:
 		PARENTTB::clear_cache();
 	}
 
-	void	testload(int nlen, long *data) {
+	void	testload(int nlen, int64_t *data) {
 		load(nlen, data);
 
 		for(int k=0; k<nlen; k++) {

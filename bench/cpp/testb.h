@@ -12,7 +12,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (C) 2017, Gisselquist Technology, LLC
+// Copyright (C) 2017-2018, Gisselquist Technology, LLC
 //
 // This program is free software (firmware): you can redistribute it and/or
 // modify it under the terms of the GNU General Public License as published
@@ -50,7 +50,7 @@ template <class VA>	class TESTB {
 public:
 	VA	*m_core;
 	VerilatedVcdC*	m_trace;
-	unsigned long	m_tickcount;
+	uint64_t 	m_tickcount;
 
 	TESTB(void) : m_trace(NULL), m_tickcount(0l) {
 		Verilated::traceEverOn(true);

@@ -11,7 +11,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (C) 2017, Gisselquist Technology, LLC
+// Copyright (C) 2017-2018, Gisselquist Technology, LLC
 //
 // This program is free software (firmware): you can redistribute it and/or
 // modify it under the terms of the GNU General Public License as published
@@ -80,10 +80,10 @@ int	main(int argc, char **argv) {
 	tb = new FASTFIR_TB();
 
 	const int	TAPVALUE = -(1<<(TW-1));
-	const long	IMPULSE  =  (1<<(IW-1))-1;
+	const int64_t	IMPULSE  =  (1<<(IW-1))-1;
 
-	long	tapvec[NTAPS];
-	long	ivec[2*NTAPS];
+	int64_t	tapvec[NTAPS];
+	int64_t	ivec[2*NTAPS];
 
 	// tb->trace("trace.vcd");
 	tb->reset();

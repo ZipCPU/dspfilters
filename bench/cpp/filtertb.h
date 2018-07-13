@@ -11,7 +11,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (C) 2017, Gisselquist Technology, LLC
+// Copyright (C) 2017-2018, Gisselquist Technology, LLC
 //
 // This program is free software (firmware): you can redistribute it and/or
 // modify it under the terms of the GNU General Public License as published
@@ -38,6 +38,8 @@
 #ifndef	FILTERTB_H
 #define	FILTERTB_H
 
+#include <stdint.h>
+
 #ifndef	COMPLEX_H
 #include <complex>
 #define	COMPLEX_H
@@ -45,7 +47,7 @@ typedef	std::complex<double>	COMPLEX;
 #endif
 
 template <class VFLTR> class FILTERTB : public TESTB<VFLTR> {
-	long	*m_hk;
+	int64_t	*m_hk;
 	int	m_delay, m_iw, m_ow, m_tw, m_ntaps, m_nclks;
 	FILE	*result_fp;
 public:
@@ -116,17 +118,17 @@ public:
 	virtual	void	reset(void);
 
 	// Load values from taps into the filter.
-	virtual	void	load(int  ntaps,  long *data);
+	virtual	void	load(int  ntaps,  int64_t *data);
 
 	// Apply a given test vector to the filter (no reset applied)
-	virtual	void	apply(int nlen, long *data);
+	virtual	void	apply(int nlen, int64_t *data);
 
 	// Reset the filter, and apply a given test vector to the filter
-	virtual	void	test(int  nlen, long *data);
+	virtual	void	test(int  nlen, int64_t *data);
 
 	// Load the taps into the filter, and then compare the taps against
 	// the impulse response that results.
-	virtual	void	testload(int  nlen, long *data);
+	virtual	void	testload(int  nlen, int64_t *data);
 
 	// The [] operator is used to "read-back" from the filter what it's
 	// actual impulse response is.  [0] should return the first value in

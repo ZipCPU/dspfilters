@@ -37,7 +37,7 @@
 //
 #include "filtertb.h"
 
-static long	sbits(uint64_t val, int b) {
+static uint64_t	sbits(uint64_t val, int b) {
 	long	s;
 
 	s = (val << (sizeof(val)*8-b));
@@ -45,13 +45,13 @@ static long	sbits(uint64_t val, int b) {
 	return	s;
 }
 
-static unsigned	long ubits(uint64_t val, int b) {
+static uint64_t ubits(uint64_t val, int b) {
 	return	val &= (1<<b)-1;
 }
 
 template<class VFLTR> void	FILTERTB<VFLTR>::tick(void) {
 	bool	ce;
-	long	vec[2];
+	int64_t	vec[2];
 
 	ce = (TESTB<VFLTR>::m_core->i_ce);
 	vec[0] = sbits(TESTB<VFLTR>::m_core->i_sample, IW());
@@ -61,7 +61,7 @@ template<class VFLTR> void	FILTERTB<VFLTR>::tick(void) {
 	vec[1] = sbits(TESTB<VFLTR>::m_core->o_result, OW());
 
 	if ((ce)&&(result_fp))
-		fwrite(vec, sizeof(long), 2, result_fp);
+		fwrite(vec, sizeof(int64_t), 2, result_fp);
 }
 
 template<class VFLTR> void	FILTERTB<VFLTR>::reset(void) {
@@ -75,7 +75,7 @@ template<class VFLTR> void	FILTERTB<VFLTR>::reset(void) {
 	TESTB<VFLTR>::m_core->i_reset = 0;
 }
 
-template<class VFLTR> void	FILTERTB<VFLTR>::apply(int nlen, long *data) {
+template<class VFLTR> void	FILTERTB<VFLTR>::apply(int nlen, int64_t *data) {
 // printf("FILTERTB::apply(%d, ...)\n", nlen);
 	TESTB<VFLTR>::m_core->i_reset  = 0;
 	TESTB<VFLTR>::m_core->i_tap_wr = 0;
@@ -108,7 +108,7 @@ template<class VFLTR> void	FILTERTB<VFLTR>::apply(int nlen, long *data) {
 	TESTB<VFLTR>::m_core->i_ce     = 0;
 }
 
-template<class VFLTR> void	FILTERTB<VFLTR>::load(int  ntaps, long *data) {
+template<class VFLTR> void	FILTERTB<VFLTR>::load(int  ntaps, int64_t *data) {
 	TESTB<VFLTR>::m_core->i_reset = 0;
 	TESTB<VFLTR>::m_core->i_ce    = 0;
 	TESTB<VFLTR>::m_core->i_tap_wr= 1;
@@ -124,7 +124,7 @@ template<class VFLTR> void	FILTERTB<VFLTR>::load(int  ntaps, long *data) {
 	clear_cache();
 }
 
-template<class VFLTR> void	FILTERTB<VFLTR>::test(int  nlen, long *data) {
+template<class VFLTR> void	FILTERTB<VFLTR>::test(int  nlen, int64_t *data) {
 	const	bool	debug = false;
 	assert(nlen > 0);
 
@@ -135,7 +135,7 @@ template<class VFLTR> void	FILTERTB<VFLTR>::test(int  nlen, long *data) {
 
 	int	tstcounts = nlen+DELAY();
 	for(int i=0; i<tstcounts; i++) {
-		long	v;
+		int64_t	v;
 
 		v = 0;
 		TESTB<VFLTR>::m_core->i_ce = 1;
@@ -184,7 +184,7 @@ template<class VFLTR> int	FILTERTB<VFLTR>::operator[](const int tap) {
 		return 0;
 	else if (!m_hk) {
 		int	nlen = 2*NTAPS();
-		m_hk = new long[nlen];
+		m_hk = new int64_t[nlen];
 
 		// Create an input vector with a single impulse in it
 		for(int i=0; i<nlen; i++)
@@ -206,7 +206,7 @@ template<class VFLTR> int	FILTERTB<VFLTR>::operator[](const int tap) {
 	return m_hk[tap];
 }
 
-template<class VFLTR> void	FILTERTB<VFLTR>::testload(int nlen, long *data) {
+template<class VFLTR> void	FILTERTB<VFLTR>::testload(int nlen, int64_t *data) {
 	bool	mismatch = false;
 	load(nlen, data);
 	reset();
@@ -229,9 +229,9 @@ template<class VFLTR> void	FILTERTB<VFLTR>::testload(int nlen, long *data) {
 
 template<class VFLTR> bool	FILTERTB<VFLTR>::test_overflow(void) {
 	int	nlen = 2*NTAPS();
-	long	*input  = new long[nlen],
-		*output = new long[nlen];
-	long	maxv = (1<<(IW()-1))-1;
+	int64_t	*input  = new int64_t[nlen],
+		*output = new int64_t[nlen];
+	int64_t	maxv = (1<<(IW()-1))-1;
 	bool	pass = true, tested = false;
 
 	// maxv = 1;
@@ -248,7 +248,7 @@ template<class VFLTR> bool	FILTERTB<VFLTR>::test_overflow(void) {
 	test(nlen, output);
 
 	for(int k=0; k<nlen; k++) {
-		long	acc = 0;
+		int64_t	acc = 0;
 		bool	all = true;
 		for(int v = 0; v<NTAPS(); v++) {
 			if (k-v >= 0) {
@@ -274,7 +274,7 @@ template<class VFLTR> bool	FILTERTB<VFLTR>::test_overflow(void) {
 template<class VFLTR> void	FILTERTB<VFLTR>::response(int nfreq,
 		COMPLEX *rvec, double mag, const char *fname) {
 	int	nlen = NTAPS();
-	long	*data = new long[nlen];
+	int64_t	*data = new int64_t[nlen];
 	double	df = 1./nfreq / 2.;
 	COMPLEX	hk;
 	const bool	debug= false;

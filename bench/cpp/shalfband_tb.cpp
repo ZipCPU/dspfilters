@@ -90,12 +90,12 @@ public:
 printf("ODD of %d is %d\n", v, ov);
 		return ov;
 	}
-	void	test(int nlen, long *data) {
+	void	test(int nlen, int64_t *data) {
 		clear_filter();
 		FILTERTB<Vshalfband>::test(nlen, data);
 	}
 
-	void	load(int nlen, long *data) {
+	void	load(int nlen, int64_t *data) {
 		reset();
 		FILTERTB<Vshalfband>::load(nlen, data);
 	}
@@ -115,7 +115,7 @@ printf("ODD of %d is %d\n", v, ov);
 			tick();
 	}
 
-        void    testload(int nlen, long *data) {
+        void    testload(int nlen, int64_t *data) {
 		bool	debug = false;
 		load(nlen, data);
 
@@ -164,10 +164,10 @@ int	main(int argc, char **argv) {
 	tb = new SHALFBAND_TB();
 
 	assert((NTAPS & 3)==3);
-	const long	TAPVALUE =  (1<<(TW-1))-1;
+	const int64_t	TAPVALUE =  (1<<(TW-1))-1;
 	// const long	IMPULSE  =  (1<<(IW-1))-1;
 
-	long	tapvec[NTAPS];
+	int64_t	tapvec[NTAPS];
 	// long	ivec[2*NTAPS];
 
 	tb->opentrace("trace.vcd");
