@@ -38,7 +38,7 @@
 #include "filtertb.h"
 
 static uint64_t	sbits(uint64_t val, int b) {
-	long	s;
+	int64_t	s;
 
 	s = (val << (sizeof(val)*8-b));
 	s >>= (sizeof(val)*8-b);
@@ -46,7 +46,9 @@ static uint64_t	sbits(uint64_t val, int b) {
 }
 
 static uint64_t ubits(uint64_t val, int b) {
-	return	val &= (1<<b)-1;
+	uint64_t	one = 1;
+
+	return	val &= (one<<b)-one;
 }
 
 template<class VFLTR> void	FILTERTB<VFLTR>::tick(void) {
