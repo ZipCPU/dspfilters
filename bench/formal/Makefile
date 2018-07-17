@@ -97,5 +97,5 @@ clean:
 	rm -f  $(LFSR).smt2   $(LFSR)*.vcd  $(LFSR).yslog
 	rm -f  $(EQUIV).smt2  $(EQUIV)*.vcd $(EQUIV).yslog
 	rm -f  $(DELAY).smt2  $(DELAY)*.vcd $(DELAY).yslog
-	rm -rf $(FFIR)/
+	rm -rf $(FFIR)_first/ $(FFIR)_second/
 	rm -f  *.check

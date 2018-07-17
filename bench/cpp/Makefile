@@ -50,7 +50,7 @@ export  $(VERILATOR)
 VROOT  := $(VERILATOR_ROOT)
 VDEFS  := $(shell ./vversion.sh)
 INCS	:= -I$(RTLD)/obj_dir/ -I$(VROOT)/include -I../rtl/obj_dir
-PROGRAMS := slowsymf_tb genericfir_tb fastfir_tb boxcar_tb lfsr_gal_tb lfsr_fib_tb delayw_tb slowfil_tb shalfband_tb # symfil_tb
+PROGRAMS := slowsymf_tb genericfir_tb fastfir_tb boxcar_tb lfsr_gal_tb lfsr_fib_tb delayw_tb slowfil_tb shalfband_tb lfsr_tb # symfil_tb
 SOURCES := $(addsuffix .cpp,$(PROGRAMS)) filtertb.cpp
 VOBJDR	:= $(RTLD)/obj_dir
 SYSVDR	:= $(VROOT)/include
@@ -134,5 +134,10 @@ tags:	$(SOURCES) $(HEADERS)
 clean:
 	rm -f $(PROGRAMS)
 	rm -rf $(OBJDIR)/
+	rm -rf *.vcd
+	rm -rf filter_tb.dbl dsp.64t
+	rm -rf tags
 
+ifneq ($(MAKECMDGOALS),clean)
 -include $(OBJDIR)/depends.txt
+endif
