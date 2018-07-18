@@ -47,6 +47,14 @@
 #include "verilated_vcd_c.h"
 #include "Vlfsr.h"
 
+#ifdef	NEW_VERILATOR
+#define	VVAR(A)	lfsr__DOT_ ## A
+#else
+#define	VVAR(A)	v__DOT_ ## A
+#endif
+#define	sreg	VVAR(_sreg)
+
+
 int	main(int argc, char **argv) {
 	Verilated::commandArgs(argc, argv);
 	Vlfsr		tb;
@@ -80,8 +88,8 @@ int	main(int argc, char **argv) {
 	tb.eval();
 	TRACE_NEGEDGE;
 
-	assert(((tb.v__DOT__sreg)&((1<<LN)-1)) == 1);
-	assert(tb.v__DOT__sreg != 0);
+	assert(((tb.sreg)&((1<<LN)-1)) == 1);
+	assert(tb.sreg != 0);
 
 	while(clocks < 16*32*32) {
 		int	ch;
@@ -109,13 +117,13 @@ int	main(int argc, char **argv) {
 		} nbits += WS;
 		clocks++;
 
-		assert(tb.v__DOT__sreg != 0);
-		if (((tb.v__DOT__sreg)&((1<<LN)-1)) == 1)
+		assert(tb.sreg != 0);
+		if (((tb.sreg)&((1<<LN)-1)) == 1)
 			break;
 	}
 	TRACE_CLOSE;
 
-	while(((tb.v__DOT__sreg)&((1<<LN)-1)) != 1) {
+	while(((tb.sreg)&((1<<LN)-1)) != 1) {
 		tb.i_clk = 1;
 		tb.i_ce  = 1;
 		tb.eval();
@@ -128,7 +136,7 @@ int	main(int argc, char **argv) {
 			ones += ((tb.o_word>>k)&1);
 		} nbits += WS;
 		clocks++;
-		assert(tb.v__DOT__sreg != 0);
+		assert(tb.sreg != 0);
 	}
 	printf("\n\nSimulation complete: %d clocks (%08x), %d ones, %d bits\n", clocks, clocks, ones, nbits);
 
