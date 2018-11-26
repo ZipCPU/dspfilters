@@ -47,8 +47,7 @@ will need to be determined.
 
 # License
 
-As with most of my source code, this repository is released under the terms
-and conditions of the
-[GPLv3](https://www.gnu.org/licenses/gpl-3.0.en.html).  If these conditions
+This repository is released under the terms and conditions of the
+[LGPLv3](https://www.gnu.org/licenses/gpl-3.0.en.html).  If these conditions
 are not sufficient for you and your purposes, other licenses terms are
 available for a minimal purchase price.
