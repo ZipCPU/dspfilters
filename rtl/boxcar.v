@@ -44,7 +44,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (C) 2017-2018, Gisselquist Technology, LLC
+// Copyright (C) 2017-2019, Gisselquist Technology, LLC
 //
 // This file is part of the DSP filtering set of designs.
 //
@@ -76,6 +76,7 @@ module	boxcar(i_clk, i_reset, i_navg, i_ce, i_sample, o_result);
 			LGMEM=6,	// Size of the memory.
 			OW=(IW+LGMEM);	// Output bit-width
 	parameter [0:0]	FIXED_NAVG=1'b0; // True if number of averages is fixed
+	parameter [0:0]	OPT_SIGNED=1'b1; // True for averaging signed numbers
 	// Always assume we'll be averaging by the maximum amount, unless told
 	// otherwise.  Minus one, in two's complement, will become this number
 	// when interpreted as an unsigned number.
@@ -86,7 +87,7 @@ module	boxcar(i_clk, i_reset, i_navg, i_ce, i_sample, o_result);
 	//
 	input	wire			i_ce;	// True if i_sample is valid
 	input	wire	[(IW-1):0]	i_sample;// Input value to be filtered
-	output	wire	[(OW-1):0]	o_result;// Output filter value
+	output	reg	[(OW-1):0]	o_result;// Output filter value
 
 	reg			full;
 	reg	[(LGMEM-1):0]	rdaddr, wraddr;
@@ -99,10 +100,10 @@ module	boxcar(i_clk, i_reset, i_navg, i_ce, i_sample, o_result);
 	// It starts at zero, and increments on every valid sample.
 	initial	wraddr = 0;
 	always @(posedge i_clk)
-		if (i_reset)
-			wraddr <= 0;
-		else if (i_ce)
-			wraddr <= wraddr + 1'b1;
+	if (i_reset)
+		wraddr <= 0;
+	else if (i_ce)
+		wraddr <= wraddr + 1'b1;
 
 	// Calculate the requested number of averages.  If this value is
 	// fixed, these will be INITIAL_NAVG and the input i_navg will be
@@ -120,13 +121,13 @@ module	boxcar(i_clk, i_reset, i_navg, i_ce, i_sample, o_result);
 	// to initialize memory.  For this reason, we'll declare all memory
 	// values to be zero on reset, and only start using the memory once
 	// all values have been set.
-	initial	rdaddr = 0;
+	initial	rdaddr = -INITIAL_NAVG;
 	always @(posedge i_clk)
-		if (i_reset)
-			rdaddr <= -w_requested_navg;
-		else if (i_ce)
-			// rdaddr <= wraddr - navg + 1'b1;
-			rdaddr <= rdaddr + 1'b1;
+	if (i_reset)
+		rdaddr <= -w_requested_navg;
+	else if (i_ce)
+		// rdaddr <= wraddr - navg + 1'b1;
+		rdaddr <= rdaddr + 1'b1;
 
 	//
 	// Clock stage one
@@ -136,26 +137,26 @@ module	boxcar(i_clk, i_reset, i_navg, i_ce, i_sample, o_result);
 	// a clock to read from our memory
 	initial	preval = 0;
 	always @(posedge i_clk)
-		if (i_reset)
-			preval <= 0;
-		else if (i_ce)
-			preval <= i_sample;
+	if (i_reset)
+		preval <= 0;
+	else if (i_ce)
+		preval <= i_sample;
 
 	always @(posedge i_clk)
-		if (i_ce)
-			mem[wraddr] <= i_sample;
+	if (i_ce)
+		mem[wraddr] <= i_sample;
 
 	initial	memval = 0;
 	always @(posedge i_clk)
-		if (i_ce)
-			memval <= mem[rdaddr];
+	if (i_ce)
+		memval <= mem[rdaddr];
 
 	initial	full   = 1'b0;
 	always @(posedge i_clk)
-		if (i_reset)
-			full <= 0;
-		else if (i_ce)
-			full <= (full)||(rdaddr==0);
+	if (i_reset)
+		full <= 0;
+	else if (i_ce)
+		full <= (full)||(rdaddr==0);
 
 	// Clock stage two
 	//
@@ -164,16 +165,16 @@ module	boxcar(i_clk, i_reset, i_navg, i_ce, i_sample, o_result);
 	//
 	initial	sub = 0;
 	always @(posedge i_clk)
-		if (i_reset)
-			sub <= 0;
-		else if (i_ce)
-		begin
-			if (full)
-				sub <= { preval[(IW-1)], preval }
-						- { memval[(IW-1)], memval };
-			else
-				sub <= { preval[(IW-1)], preval };
-		end
+	if (i_reset)
+		sub <= 0;
+	else if (i_ce)
+	begin
+		if (full)
+			sub <= { OPT_SIGNED&preval[(IW-1)], preval }
+					- { OPT_SIGNED&memval[(IW-1)], memval };
+		else
+			sub <= { OPT_SIGNED&preval[(IW-1)], preval };
+	end
 
 	// Clock stage three
 	//
@@ -181,10 +182,10 @@ module	boxcar(i_clk, i_reset, i_navg, i_ce, i_sample, o_result);
 	// average summation.
 	initial	acc = 0;
 	always @(posedge i_clk)
-		if (i_reset)
-			acc <= 0;
-		else if (i_ce)
-			acc <= acc + { {(LGMEM-1){sub[IW]}}, sub };
+	if (i_reset)
+		acc <= 0;
+	else if (i_ce)
+		acc <= acc + { {(LGMEM-1){OPT_SIGNED&sub[IW]}}, sub };
 
 	//
 	// Clock stage four
@@ -217,11 +218,90 @@ module	boxcar(i_clk, i_reset, i_navg, i_ce, i_sample, o_result);
 	// rounded is set with combinatorial logic.  It's also set to
 	// IW+LGMEM bits.  So, let's take a clock and drop from IW+LGMEM bits
 	// to however many bits have been requested of us.
+	initial	o_result = 0;
 	always @(posedge i_clk)
-		if (i_reset)
-			o_result <= 0;
-		else if (i_ce)
-			o_result <= rounded[(IW+LGMEM-1):(IW+LGMEM-OW)];
+	if (i_reset)
+		o_result <= 0;
+	else if (i_ce)
+		o_result <= rounded[(IW+LGMEM-1):(IW+LGMEM-OW)];
+
+`ifdef	FORMAL
+	reg	f_past_valid;
+	initial	f_past_valid = 1'b0;
+	always @(posedge i_clk)
+		f_past_valid <= 1'b1;
+
+	reg	[(LGMEM-1):0]	f_navg;
+
+	always @(*)
+	if ((!FIXED_NAVG)&&(!f_past_valid))
+		assume(i_reset);
+
+	always @(posedge i_clk)
+	if ((f_past_valid)&&(!$past(i_ce)))
+		assume(i_ce);
+
+	always @(*)
+	if ((!FIXED_NAVG)&&(i_reset))
+		assume(i_navg > 3);
+
+	always @(posedge i_clk)
+	if ((f_test[3])&&(f_navg < (1<<LGMEM)-3))
+		assert(f_sum == acc);
+
+	always @(*)
+		assert(f_navg > 3);
+
+	always @(posedge i_clk)
+		cover($rose(full));
+
+	initial	f_navg = INITIAL_NAVG;
+	always @(posedge i_clk)
+	if (FIXED_NAVG)
+		f_navg <= INITIAL_NAVG;
+	else if (i_reset)
+		f_navg <= i_navg;
 
 
+	wire	[LGMEM-1:0]	f_rdaddr;
+	assign	f_rdaddr = wraddr - f_navg;
+	always @(posedge i_clk)
+	if (!i_reset)
+		assert(f_rdaddr == rdaddr);
+
+	integer	k;
+	reg	[LGMEM+IW-1:0]	f_sum;
+	always @(*)
+	begin
+		f_sum = 0;
+		for(k=0; k<(1<<LGMEM); k=k+1)
+		begin
+			if (((full)&&(k<f_navg)) || ((!full)&&(wraddr>=3)&&(k < wraddr-2)))
+				f_sum = f_sum
+				+ {{(LGMEM){OPT_SIGNED&mem[wraddr-k-3][IW-1]}},
+				    mem[wraddr-k-3] };
+		end
+	end
+
+	wire	[LGMEM-1:0]	f_full_addr;
+	assign	f_full_addr = - f_navg;
+
+	always @(*)
+	if ((rdaddr < f_full_addr)&&(rdaddr != 0))
+		assert(full);
+
+	reg	[3:0]	f_test;
+	initial	f_test = 0;
+	always @(posedge i_clk)
+	if (i_reset)
+		f_test <= 0;
+	else if ((full)&&(i_ce))
+		f_test <= { f_test[2:0], 1'b1 };
+
+	always @(posedge i_clk)
+	if ((f_test[3])&&(f_navg < (1<<LGMEM)-4))
+		assert(f_sum == acc);
+	else if ((wraddr > 1)&&(!full))
+		assert(f_sum == acc);
+`endif
 endmodule

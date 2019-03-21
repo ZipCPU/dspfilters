@@ -11,7 +11,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (C) 2017-2018, Gisselquist Technology, LLC
+// Copyright (C) 2017-2019, Gisselquist Technology, LLC
 //
 // This file is part of the DSP filtering set of designs.
 //
@@ -36,6 +36,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
 //
+#include <math.h>
 #include "filtertb.h"
 
 static uint64_t	sbits(uint64_t val, int b) {
@@ -217,7 +218,9 @@ template<class VFLTR> void	FILTERTB<VFLTR>::testload(int nlen, int64_t *data) {
 	for(int k=0; k<nlen; k++) {
 		int	m = (*this)[k];
 		if (data[k] != m) {
-			printf("Err: Data[%d] = %ld != (*this)[%d] = %d\n", k, data[k], k, m);
+			printf("Err: Data[%*d] = %8ld != (*this)[%*d] = %8d\n",
+				k, (int)ceil(log(nlen+1)/log(10.0)), data[k],
+				k, (int)ceil(log(nlen+1)/log(10.0)), m);
 			mismatch = true;
 		}
 	}

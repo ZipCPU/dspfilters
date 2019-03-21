@@ -1,0 +1,120 @@
+[*]
+[*] GTKWave Analyzer v3.3.66 (w)1999-2015 BSI
+[*] Mon Jan 28 14:47:32 2019
+[*]
+[dumpfile] "/home/dan/work/rnd/opencores/dspfilters/trunk/bench/formal/boxcar_prf/engine_0/trace.vcd"
+[dumpfile_mtime] "Mon Jan 28 13:41:35 2019"
+[dumpfile_size] 22000
+[savefile] "/home/dan/work/rnd/opencores/dspfilters/trunk/bench/formal/boxcar.gtkw"
+[timestart] 0
+[size] 1900 600
+[pos] -1 -1
+*-5.031004 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[sst_width] 196
+[signals_width] 198
+[sst_expanded] 1
+[sst_vpaned_height] 155
+@22
+boxcar.i_navg[5:0]
+boxcar.f_navg[5:0]
+@200
+-
+@28
+boxcar.i_reset
+boxcar.i_clk
+boxcar.i_ce
+@22
+boxcar.i_sample[15:0]
+boxcar.o_result[21:0]
+@200
+-
+@28
+boxcar.full
+boxcar.f_test[2:0]
+@22
+boxcar.acc[21:0]
+boxcar.f_sum[21:0]
+@200
+-
+@22
+boxcar.wraddr[5:0]
+boxcar.rdaddr[5:0]
+boxcar.f_rdaddr[5:0]
+@200
+-
+@22
+boxcar.preval[15:0]
+boxcar.rounded[21:0]
+boxcar.sub[16:0]
+boxcar.w_requested_navg[5:0]
+@200
+-
+@23
+boxcar.memval[15:0]
+@22
+boxcar.mem<00>[15:0]
+boxcar.mem<02>[15:0]
+boxcar.mem<01>[15:0]
+boxcar.mem<03>[15:0]
+boxcar.mem<04>[15:0]
+boxcar.mem<05>[15:0]
+boxcar.mem<06>[15:0]
+boxcar.mem<07>[15:0]
+boxcar.mem<08>[15:0]
+boxcar.mem<09>[15:0]
+boxcar.mem<0a>[15:0]
+boxcar.mem<0b>[15:0]
+boxcar.mem<0c>[15:0]
+boxcar.mem<0d>[15:0]
+boxcar.mem<0e>[15:0]
+boxcar.mem<0f>[15:0]
+boxcar.mem<10>[15:0]
+boxcar.mem<11>[15:0]
+boxcar.mem<12>[15:0]
+boxcar.mem<13>[15:0]
+boxcar.mem<14>[15:0]
+boxcar.mem<15>[15:0]
+boxcar.mem<16>[15:0]
+boxcar.mem<17>[15:0]
+boxcar.mem<18>[15:0]
+boxcar.mem<19>[15:0]
+boxcar.mem<1a>[15:0]
+boxcar.mem<1b>[15:0]
+boxcar.mem<1c>[15:0]
+boxcar.mem<1d>[15:0]
+boxcar.mem<1e>[15:0]
+boxcar.mem<1f>[15:0]
+boxcar.mem<20>[15:0]
+boxcar.mem<21>[15:0]
+boxcar.mem<22>[15:0]
+boxcar.mem<23>[15:0]
+boxcar.mem<24>[15:0]
+boxcar.mem<25>[15:0]
+boxcar.mem<26>[15:0]
+boxcar.mem<27>[15:0]
+boxcar.mem<28>[15:0]
+boxcar.mem<29>[15:0]
+boxcar.mem<2a>[15:0]
+boxcar.mem<2b>[15:0]
+boxcar.mem<2c>[15:0]
+boxcar.mem<2d>[15:0]
+boxcar.mem<2e>[15:0]
+boxcar.mem<2f>[15:0]
+boxcar.mem<30>[15:0]
+boxcar.mem<31>[15:0]
+boxcar.mem<32>[15:0]
+boxcar.mem<33>[15:0]
+boxcar.mem<34>[15:0]
+boxcar.mem<35>[15:0]
+boxcar.mem<36>[15:0]
+boxcar.mem<37>[15:0]
+boxcar.mem<38>[15:0]
+boxcar.mem<39>[15:0]
+boxcar.mem<3a>[15:0]
+boxcar.mem<3b>[15:0]
+boxcar.mem<3c>[15:0]
+boxcar.mem<3d>[15:0]
+boxcar.mem<3e>[15:0]
+boxcar.mem<3f>[15:0]
+[pattern_trace] 1
+[pattern_trace] 0

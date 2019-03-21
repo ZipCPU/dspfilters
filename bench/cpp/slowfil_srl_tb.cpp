@@ -45,7 +45,7 @@
 
 #include "verilated.h"
 #include "verilated_vcd_c.h"
-#include "Vslowfil.h"
+#include "Vslowfil_srl.h"
 #include "testb.h"
 
 // #define	FILTER_HAS_O_CE
@@ -68,7 +68,7 @@ static	int     nextlg(int vl) {
 	return r;
 }
 
-class	SLOWFIL_TB : public FILTERTB<Vslowfil> {
+class	SLOWFIL_TB : public FILTERTB<Vslowfil_srl> {
 public:
 	bool		m_done;
 
@@ -83,12 +83,12 @@ public:
 
 	void	test(int nlen, int64_t *data) {
 		clear_filter();
-		FILTERTB<Vslowfil>::test(nlen, data);
+		FILTERTB<Vslowfil_srl>::test(nlen, data);
 	}
 
 	void	load(int nlen, int64_t *data) {
 		reset();
-		FILTERTB<Vslowfil>::load(nlen, data);
+		FILTERTB<Vslowfil_srl>::load(nlen, data);
 	}
 
 	void	clear_filter(void) {

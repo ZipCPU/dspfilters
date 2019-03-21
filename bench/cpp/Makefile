@@ -13,7 +13,7 @@
 ##
 ################################################################################
 ##
-## Copyright (C) 2017-2018, Gisselquist Technology, LLC
+## Copyright (C) 2017-2019, Gisselquist Technology, LLC
 ##
 ## This file is part of the DSP filtering set of designs.
 ##
@@ -52,7 +52,7 @@ export  $(VERILATOR)
 VROOT  := $(VERILATOR_ROOT)
 VDEFS  := $(shell ./vversion.sh)
 INCS	:= -I$(RTLD)/obj_dir/ -I$(VROOT)/include -I../rtl/obj_dir
-PROGRAMS := slowsymf_tb genericfir_tb fastfir_tb boxcar_tb lfsr_gal_tb lfsr_fib_tb delayw_tb slowfil_tb shalfband_tb lfsr_tb # symfil_tb
+PROGRAMS := slowsymf_tb genericfir_tb fastfir_tb boxcar_tb lfsr_gal_tb lfsr_fib_tb delayw_tb slowfil_tb shalfband_tb lfsr_tb slowfil_srl_tb # symfil_tb
 SOURCES := $(addsuffix .cpp,$(PROGRAMS)) filtertb.cpp
 VOBJDR	:= $(RTLD)/obj_dir
 SYSVDR	:= $(VROOT)/include
@@ -76,6 +76,9 @@ fastfir_tb: $(OBJDIR)/fastfir_tb.o $(VLIB) $(VOBJDR)/Vfastfir__ALL.a
 	$(CXX) $(CFLAGS) $(INCS) $^ -o $@
 
 slowfil_tb: $(OBJDIR)/slowfil_tb.o $(VLIB) $(VOBJDR)/Vslowfil__ALL.a
+	$(CXX) $(CFLAGS) $(INCS) $^ -o $@
+
+slowfil_srl_tb: $(OBJDIR)/slowfil_srl_tb.o $(VLIB) $(VOBJDR)/Vslowfil_srl__ALL.a
 	$(CXX) $(CFLAGS) $(INCS) $^ -o $@
 
 slowsymf_tb: $(OBJDIR)/slowsymf_tb.o $(VLIB) $(VOBJDR)/Vslowsymf__ALL.a

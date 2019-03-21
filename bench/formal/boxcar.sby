@@ -1,0 +1,19 @@
+[tasks]
+prf
+
+[options]
+prf: mode prove
+depth 33
+
+[engines]
+smtbmc boolector
+
+[script]
+read -formal boxcar.v
+chparam -set FIXED_NAVG  0 boxcar
+chparam -set LGMEM       4 boxcar
+chparam -set IW          3 boxcar
+prep -top boxcar
+
+[files]
+../../rtl/boxcar.v
