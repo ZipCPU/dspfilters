@@ -47,7 +47,7 @@ VDIRFB:= $(FBDIR)/obj_dir
 VERILATOR := verilator
 VFLAGS := -O3 -Wall -MMD -trace -cc
 SUBMAKE := make --no-print-directory -C
-CORES := smplfir iiravg genericfir fastfir boxcar lfsr_gal lfsr_fib delayw lfsr slowfil slowsymf shalfband
+CORES := smplfir iiravg genericfir fastfir boxcar lfsr_gal lfsr_fib delayw lfsr slowfil slowfil_srl slowsymf shalfband
 .PHONY: all $(CORES)
 all: $(CORES) # symfil
 
@@ -55,6 +55,7 @@ genericfir:	$(VDIRFB)/Vgenericfir__ALL.a
 fastfir:	$(VDIRFB)/Vfastfir__ALL.a
 symfil:		$(VDIRFB)/Vsymfil__ALL.a
 slowfil:	$(VDIRFB)/Vslowfil__ALL.a
+slowfil_srl:	$(VDIRFB)/Vslowfil_srl__ALL.a
 slowsymf:	$(VDIRFB)/Vslowsymf__ALL.a
 shalfband:	$(VDIRFB)/Vshalfband__ALL.a
 smplfir:	$(VDIRFB)/Vsmplfir__ALL.a
@@ -82,6 +83,9 @@ $(VDIRFB)/Vsymfil__ALL.a: $(VDIRFB)/Vsymfil.mk
 
 $(VDIRFB)/Vslowfil__ALL.a: $(VDIRFB)/Vslowfil.mk
 	$(SUBMAKE) $(VDIRFB)/ -f Vslowfil.mk Vslowfil__ALL.a
+
+$(VDIRFB)/Vslowfil_srl__ALL.a: $(VDIRFB)/Vslowfil_srl.mk
+	$(SUBMAKE) $(VDIRFB)/ -f Vslowfil_srl.mk Vslowfil_srl__ALL.a
 
 $(VDIRFB)/Vslowsymf__ALL.a: $(VDIRFB)/Vslowsymf.mk
 	$(SUBMAKE) $(VDIRFB)/ -f Vslowsymf.mk Vslowsymf__ALL.a
