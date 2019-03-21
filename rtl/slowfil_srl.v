@@ -79,9 +79,7 @@ module	slowfil_srl(i_clk, i_reset, i_tap_wr, i_tap, i_ce, i_sample, o_ce, o_resu
 	reg signed [(TW-1):0]	tap;		// Value read from coef memory
 
 	reg	[(LGNTAPS-1):0]	tidx;		// Coefficient read index
-	/* Verilator lint_off LITENDIAN */
-	reg	[0:(MEMSZ-1)]		dsrl	[(IW-1):0];	// Data memory
-	/* Verilator lint_on LITENDIAN */
+	reg	[(IW-1):0]	dsrl	[0:(MEMSZ-1)];	// Data memory
 	reg signed [(IW-1):0]	data;		// Data value read from memory
 
 	// Traveling CE values
@@ -136,12 +134,15 @@ module	slowfil_srl(i_clk, i_reset, i_tap_wr, i_tap, i_ce, i_sample, o_ce, o_resu
 
 	// Notice how this data writing section is *independent* of the reset,
 	// depending only upon new sample data.
+	always @(posedge i_clk)
+		if (i_ce)
+			dsrl[0] <= i_sample;
 	generate
 		genvar i;
-		for (i = 0; i < IW; i=i+1) begin
+		for (i = 1; i < MEMSZ; i=i+1) begin
 			always @(posedge i_clk)
 				if (i_ce)
-					dsrl[i] <= { i_sample[i], dsrl[i][0:(MEMSZ-2)] };
+					dsrl[i] <= dsrl[i-1];
 		end
 	endgenerate
 
@@ -203,12 +204,8 @@ module	slowfil_srl(i_clk, i_reset, i_tap_wr, i_tap, i_ce, i_sample, o_ce, o_resu
 		tap <= tapmem[tidx[(LGNTAPS-1):0]];
 
 	initial	data = 0;
-	generate
-		for (i=0; i < IW; i=i+1) begin
-			always @(posedge i_clk)
-				data[i] <= dsrl[i][tidx[(LGNTAPS-1):0]];
-		end
-	endgenerate
+	always @(posedge i_clk)
+		data <= dsrl[tidx[(LGNTAPS-1):0]];
 
 	// d_ce is valid when the first data from memory is read/valid
 	initial	d_ce = 0;
