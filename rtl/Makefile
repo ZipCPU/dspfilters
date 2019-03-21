@@ -16,7 +16,7 @@
 ##
 ################################################################################
 ##
-## Copyright (C) 2015-2018, Gisselquist Technology, LLC
+## Copyright (C) 2015-2019, Gisselquist Technology, LLC
 ##
 ## This file is part of the DSP filtering set of designs.
 ##
@@ -47,7 +47,7 @@ VDIRFB:= $(FBDIR)/obj_dir
 VERILATOR := verilator
 VFLAGS := -O3 -Wall -MMD -trace -cc
 SUBMAKE := make --no-print-directory -C
-CORES := smplfir iiravg genericfir fastfir boxcar lfsr_gal lfsr_fib delayw lfsr slowfil slowfil_srl slowsymf shalfband
+CORES := smplfir iiravg genericfir fastfir boxcar lfsr_gal lfsr_fib delayw lfsr slowfil slowsymf shalfband slowfil_srl
 .PHONY: all $(CORES)
 all: $(CORES) # symfil
 
