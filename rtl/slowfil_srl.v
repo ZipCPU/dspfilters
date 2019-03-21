@@ -79,9 +79,9 @@ module	slowfil_srl(i_clk, i_reset, i_tap_wr, i_tap, i_ce, i_sample, o_ce, o_resu
 	reg signed [(TW-1):0]	tap;		// Value read from coef memory
 
 	reg	[(LGNTAPS-1):0]	tidx;		// Coefficient read index
-    /* Verilator lint_off LITENDIAN */
+	/* Verilator lint_off LITENDIAN */
 	reg	[0:(MEMSZ-1)]		dsrl	[(IW-1):0];	// Data memory
-    /* Verilator lint_on LITENDIAN */
+	/* Verilator lint_on LITENDIAN */
 	reg signed [(IW-1):0]	data;		// Data value read from memory
 
 	// Traveling CE values
@@ -204,10 +204,10 @@ module	slowfil_srl(i_clk, i_reset, i_tap_wr, i_tap, i_ce, i_sample, o_ce, o_resu
 
 	initial	data = 0;
 	generate
-	    for (i=0; i < IW; i=i+1) begin
-	    	always @(posedge i_clk)
-	    		data[i] <= dsrl[i][tidx[(LGNTAPS-1):0]];
-	    end
+		for (i=0; i < IW; i=i+1) begin
+			always @(posedge i_clk)
+				data[i] <= dsrl[i][tidx[(LGNTAPS-1):0]];
+		end
 	endgenerate
 
 	// d_ce is valid when the first data from memory is read/valid
