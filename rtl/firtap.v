@@ -67,10 +67,10 @@ module	firtap(i_clk, i_reset, i_tap_wr, i_tap, o_tap,
 	//
 	input	wire			i_ce;
 	input	wire signed [(IW-1):0]	i_sample;
-	output	wire	[(IW-1):0]	o_sample;
+	output	reg	[(IW-1):0]	o_sample;
 	//
 	input	wire	[(OW-1):0]	i_partial_acc;
-	output	wire	[(OW-1):0]	o_acc;
+	output	reg	[(OW-1):0]	o_acc;
 	//
 
 	reg		[(IW-1):0]	delayed_sample;
