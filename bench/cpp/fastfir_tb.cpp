@@ -79,14 +79,31 @@ FASTFIR_TB	*tb;
 int	main(int argc, char **argv) {
 	Verilated::commandArgs(argc, argv);
 	tb = new FASTFIR_TB();
+	bool	create_trace = false;
 
+#ifdef	MCY
+	{
+		int	argn, mutation_index;
+		argn = 1;
+		if (argv[argn][0] == '-') {
+			create_trace = (argv[argn][1] == 'd');
+			argn++;
+		}
+
+		if (isdigit(argv[argn][0])) {
+			mutation_index = atoi(argv[argn]);
+			tb->m_core->mutsel = mutation_index;
+		}
+	}
+#endif
 	const int	TAPVALUE = -(1<<(TW-1));
 	const int64_t	IMPULSE  =  (1<<(IW-1))-1;
 
 	int64_t	tapvec[NTAPS];
 	int64_t	ivec[2*NTAPS];
 
-	// tb->trace("trace.vcd");
+	if (create_trace)
+		tb->trace("trace.vcd");
 	tb->reset();
 
 	for(unsigned k=0; k<NTAPS; k++) {
