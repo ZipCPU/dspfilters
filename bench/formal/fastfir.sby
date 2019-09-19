@@ -1,19 +1,16 @@
 [tasks]
-first
-second
+prf
 
 [options]
 mode prove
-first:  depth 32
-second: depth 8
+prf:  depth 32
 
 [engines]
 smtbmc
 
 [script]
 read_verilog -formal firtap.v
-first:  read_verilog -formal fastfir.v
-second: read_verilog -formal -DPHASE_TWO fastfir.v
+read_verilog -formal fastfir.v
 read_verilog -formal abs_mpy.v
 prep -top fastfir
 

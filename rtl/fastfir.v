@@ -14,7 +14,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (C) 2017-2019, Gisselquist Technology, LLC
+// Copyright (C) 2017-2018, Gisselquist Technology, LLC
 //
 // This file is part of the DSP filtering set of designs.
 //
@@ -119,11 +119,30 @@ module	fastfir(i_clk, i_reset, i_tap_wr, i_tap, i_ce, i_sample, o_result);
 `ifdef	FORMAL
 `define	PHASE_ONE_ASSERT	assert
 `define	PHASE_TWO_ASSERT	assert
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+//
+// Formal verification section
+//
+// This only verifies that the filter produces the desired impulse response, and
+// not that it fully and properly acts as it should.
+//
+// It was originally written as a two-pass verification technique below.  After
+// discovering the flaws in the two-pass verification technique, the current
+// code now works in a single pass alone.
+//
+// Be aware when running this proof--it takes some time.  The base case requires
+// roughly 32 hours to pass (on my ancient machine).
+//
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 
-`ifdef	PHASE_TWO
-`undef	PHASE_ONE_ASSERT
-`define	PHASE_ONE_ASSERT	assume
-`endif
+// `ifdef	PHASE_TWO
+// `undef	PHASE_ONE_ASSERT
+// `define	PHASE_ONE_ASSERT	assume
+// `endif
 
 	reg	f_past_valid;
 	initial	f_past_valid = 1'b0;
@@ -285,7 +304,7 @@ module	fastfir(i_clk, i_reset, i_tap_wr, i_tap, i_ce, i_sample, o_result);
 		`PHASE_ONE_ASSERT(f_counts_to_clear == NTAPS + 1 - f_counts_since_impulse);
 
 
-`ifdef	PHASE_TWO
+// `ifdef	PHASE_TWO
 	///////////////////////////////////////
 	//
 	// Verify the impulse response
@@ -322,10 +341,10 @@ module	fastfir(i_clk, i_reset, i_tap_wr, i_tap, i_ce, i_sample, o_result);
 	// impulse and its output
 	//
 	always @(*)
-	begin
 	if ((f_counts_since_impulse >= 2)&&(f_counts_since_impulse < 2+NTAPS))
 	begin
 	for(m=0; m<NTAPS; m=m+1)
+	begin
 		if ((m >= (f_counts_since_impulse-2))&&(f_sign))
 			`PHASE_TWO_ASSERT(result[m+1]
 				== (-staps[m-(f_counts_since_impulse-2)+1]));
@@ -335,7 +354,9 @@ module	fastfir(i_clk, i_reset, i_tap_wr, i_tap, i_ce, i_sample, o_result);
 		else
 			`PHASE_TWO_ASSERT(result[m+1] == 0);
 	end
-`endif // PHASE_TWO
+	end
+// `endif // PHASE_TWO
+
 	always @(*)
 	if (i_tap_wr)
 		assume(i_reset);
