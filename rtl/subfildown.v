@@ -146,7 +146,7 @@ module	subfildown(i_clk, i_reset, i_wr_coeff, i_coeff,
 	reg			first_sample;
 	//
 	reg	[LGNCOEFFS-1:0]	didx, tidx;
-	reg			running;
+	reg			running, last_coeff;
 	//
 	reg				d_ce;
 	reg	signed	[IW-1:0]	dval;
@@ -237,6 +237,10 @@ module	subfildown(i_clk, i_reset, i_wr_coeff, i_coeff,
 	//
 	///////////////////////////////////////////////
 
+	initial	last_coeff = 0;
+	always @(posedge i_clk)
+		last_coeff = (!last_coeff && running && tidx >= NCOEFFS-2);
+
 	initial	tidx = 0;
 	initial running = 0;
 	always @(posedge i_clk)
@@ -246,7 +250,7 @@ module	subfildown(i_clk, i_reset, i_wr_coeff, i_coeff,
 		running <= 1'b0;
 	end else if ((running)||((first_sample)&&(i_ce)))
 	begin
-		if (tidx >= NCOEFFS-1)
+		if (last_coeff)
 		begin
 			running <= 1'b0;
 			tidx <= 0;
@@ -256,10 +260,13 @@ module	subfildown(i_clk, i_reset, i_wr_coeff, i_coeff,
 				running <= 1'b1;
 		end
 	end
-
+`ifdef	FORMAL
+	always @(*)
+		assert(last_coeff == (tidx >= NCOEFFS-1));
+`endif
 	initial	didx = 0;
 	always @(posedge i_clk)
-	if (!running)
+	if (!running || last_coeff)
 		// Waiting here for the first sample to come through
 		didx <= wraddr + (i_ce ? 1:0);
 	else
@@ -383,6 +390,15 @@ module	subfildown(i_clk, i_reset, i_wr_coeff, i_coeff,
 	end else
 		o_ce <= 1'b0;
 
+	//
+	// If we were to use a ready signal in addition to our i_ce (i.e. valid)
+	// signal, it would look something like:
+	//
+	//	assign	o_ready = (!running || !i_ce || !first_sample);
+	//	assign	i_ce    = i_valid && o_ready
+	//
+	//
+
 	// Make Verilator happy
 	// verilator lint_off UNUSED
 	wire	unused;
@@ -437,14 +453,7 @@ module	subfildown(i_clk, i_reset, i_wr_coeff, i_coeff,
 	// processing to stop before writing any more.  This is to keep us from
 	// overwriting data that we'll need in our next run.
 	always @(*)
-	if ((f_written == NDOWN-1)&&(running))
-		assume(!i_ce);
-
-	// We take an extra sample to recover, and so require FILTERLEN+1
-	// clocks to complete a filter.  We must therefore assume that during
-	// this extra clock there are no inputs
-	always @(posedge i_clk)
-	if (f_past_valid && $past(running))
+	if (running)
 		assume(!i_ce || !first_sample);
 
 	always @(*)
@@ -463,9 +472,7 @@ module	subfildown(i_clk, i_reset, i_wr_coeff, i_coeff,
  	always @(*)
 	if (running)
 		assert(tidx == f_dindex);
-
-	always @(posedge i_clk)
-	if (f_past_valid && !$past(running) && !running)
+	else
 		assert(didx == wraddr);
 
 	always @(*)
@@ -515,5 +522,31 @@ module	subfildown(i_clk, i_reset, i_wr_coeff, i_coeff,
 	//
 	always @(*)
 		cover(o_ce);
+
+	reg	[3:0]	cvr_seq;
+
+	initial	cvr_seq = 0;
+	always @(posedge i_clk)
+	if (i_reset)
+		cvr_seq <= 0;
+	else begin
+		// cvr_seq = cvr_seq << 1;
+		cvr_seq <= 0;
+		if (last_coeff && running)
+			cvr_seq[0] <= 1;
+		cvr_seq[1] <= (cvr_seq[0] && first_sample && i_ce);
+		cvr_seq[2] <= cvr_seq[1];
+		cvr_seq[3] <= cvr_seq[2];
+	end
+
+	always @(*)
+		cover(cvr_seq[1]);
+
+	always @(*)
+		cover(cvr_seq[2]);
+
+	always @(*)
+		cover(cvr_seq[3]);
+
 `endif // FORMAL
 endmodule
