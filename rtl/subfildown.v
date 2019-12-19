@@ -170,7 +170,7 @@ module	subfildown(i_clk, i_reset, i_wr_coeff, i_coeff,
 	// Generate the decimator via: genfil 1024 decimator 23 0.45
 	//
 	generate if (FIXED_COEFFS)
-	begin
+	begin : LOAD_INITIAL_COEFFS
 		initial $readmemh(INITIAL_COEFFS, cmem);
 
 		// Make Verilator's -Wall happy
@@ -178,7 +178,7 @@ module	subfildown(i_clk, i_reset, i_wr_coeff, i_coeff,
 		wire	ignored_inputs;
 		assign	ignored_inputs = &{ 1'b0, i_wr_coeff, i_coeff };
 		// verilator lint_on  UNUSED
-	end else begin
+	end else begin : LOAD_COEFFICIENTS
 		// Coeff memory write index
 		reg	[LGNCOEFFS-1:0]	wr_coeff_index;
 
@@ -239,7 +239,7 @@ module	subfildown(i_clk, i_reset, i_wr_coeff, i_coeff,
 
 	initial	last_coeff = 0;
 	always @(posedge i_clk)
-		last_coeff = (!last_coeff && running && tidx >= NCOEFFS-2);
+		last_coeff <= (!last_coeff && running && tidx >= NCOEFFS-2);
 
 	initial	tidx = 0;
 	initial running = 0;
@@ -370,15 +370,16 @@ module	subfildown(i_clk, i_reset, i_wr_coeff, i_coeff,
 	///////////////////////////////////////////////
 
 	generate if (OW == AW-SHIFT)
-	begin
+	begin : NO_SHIFT
 		assign	rounded_result = accumulator[AW-SHIFT-1:AW-SHIFT-OW];
 	end else if (AW-SHIFT > OW)
-	begin
+	begin : SHIFT_OUTPUT
 		wire	[AW-1:0]	prerounded = {accumulator[AW-SHIFT-1:0],
 						{(SHIFT){1'b0}} };
 		assign	rounded_result = prerounded
 				+ { {(OW){1'b0}}, prerounded[AW-OW-1],
 					{(AW-OW-1){!prerounded[AW-OW-1]}}};
+	end else begin : UNIMPLEMENTED_SHIFT
 	end endgenerate
 
 	initial	o_ce = 1'b0;
@@ -405,6 +406,9 @@ module	subfildown(i_clk, i_reset, i_wr_coeff, i_coeff,
 	assign	unused = &{ 1'b0, rounded_result[AW-OW-1:0] };
 	// verilator lint_on  UNUSED
 
+`ifdef	VERILATOR
+`define	FORMAL
+`endif
 `ifdef	FORMAL
 	reg			f_past_valid;
 	reg	[LGNCOEFFS-1:0]	f_start_index, f_written, f_dindex;
@@ -445,8 +449,12 @@ module	subfildown(i_clk, i_reset, i_wr_coeff, i_coeff,
 	always @(*)
 	if (first_sample)
 		assert(countdown == (NDOWN-1));
-	else
+
+	// Verilator lint_off WIDTH
+	always @(*)
+	if (!first_sample)
 		assert(countdown == (NDOWN-1-f_written));
+	// Verilator lint_on WIDTH
 
 	//
 	// Once NDOWN samples have been written, we need to wait for the
@@ -472,7 +480,9 @@ module	subfildown(i_clk, i_reset, i_wr_coeff, i_coeff,
  	always @(*)
 	if (running)
 		assert(tidx == f_dindex);
-	else
+
+ 	always @(*)
+	if (!running)
 		assert(didx == wraddr);
 
 	always @(*)
@@ -484,9 +494,9 @@ module	subfildown(i_clk, i_reset, i_wr_coeff, i_coeff,
 
 	always @(posedge i_clk)
 	if (tidx >= NCOEFFS -1)
-		f_expected_tidx = 0;
+		f_expected_tidx <= 0;
 	else
-		f_expected_tidx = tidx + 1;
+		f_expected_tidx <= tidx + 1;
 
 	always @(posedge i_clk)
 	if (f_past_valid && $past(tidx != 0))
@@ -509,6 +519,7 @@ module	subfildown(i_clk, i_reset, i_wr_coeff, i_coeff,
 	if (tidx != 3)
 		assert(!o_ce);
 
+`ifndef	VERILATOR
 	// Constrain the output
 	always @(posedge i_clk)
 	if (f_past_valid && !$past(p_ce))
@@ -548,5 +559,6 @@ module	subfildown(i_clk, i_reset, i_wr_coeff, i_coeff,
 	always @(*)
 		cover(cvr_seq[3]);
 
+`endif // VERILATOR
 `endif // FORMAL
 endmodule
