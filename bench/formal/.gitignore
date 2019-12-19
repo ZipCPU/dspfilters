@@ -1,10 +1,9 @@
-*.check
-*.smt2
-*.yslog
-fastfir
 fastfir_first
 fastfir_second
 boxcar_*/
+delayw_*/
 fastfir_*/
-subfildown_*/
 histogram_*/
+lfsr_*/
+lfsr_equiv_*/
+subfildown_*/

@@ -1,6 +1,20 @@
-read_verilog -D LFSREQUIV -formal ../../rtl/lfsr_fib.v
-read_verilog -D LFSREQUIV -formal ../../rtl/lfsr_gal.v
-read_verilog -D LFSREQUIV -formal lfsr_equiv.v
-prep -top lfsr_equiv -nordff
-opt -share_all
-write_smt2 -wires lfsr_equiv.smt2
+[tasks]
+prf
+
+[options]
+prf: mode prove
+prf: depth 8
+
+[engines]
+smtbmc boolector
+
+[script]
+read -formal -D LFSREQUIV -formal lfsr_fib.v
+read -formal -D LFSREQUIV -formal lfsr_gal.v
+read -formal -D LFSREQUIV -formal lfsr_equiv.v
+prep -top lfsr_equiv
+
+[files]
+../../rtl/lfsr_fib.v
+../../rtl/lfsr_gal.v
+lfsr_equiv.v

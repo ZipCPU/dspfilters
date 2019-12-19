@@ -40,7 +40,7 @@
 ################################################################################
 ##
 ##
-TESTS := lfsr lfsr_equiv fastfir histogram
+TESTS := lfsr lfsr_equiv fastfir histogram # boxcar
 .PHONY: $(TESTS)
 all: $(TESTS)
 RTL := ../../rtl
@@ -50,6 +50,7 @@ EQUIV=lfsr_equiv
 DELAY=delayw
 FFIR=fastfir
 HIST=histogram
+BCAR=boxcar
 
 SMTBMC  := yosys-smtbmc
 # SOLVER  := -s z3
@@ -58,43 +59,31 @@ SOLVER  := -s yices
 BMCARGS := $(SOLVER)
 INDARGS := $(SOLVER) -i
 
-$(LFSR).smt2: $(RTL)/$(LFSR).v
-	yosys -ql $(LFSR).yslog -s $(LFSR).ys
-
 $(EQUIV).smt2: $(EQUIV).v $(RTL)/lfsr_fib.v $(RTL)/lfsr_gal.v
 	yosys -ql $(EQUIV).yslog -s $(EQUIV).ys
 
-$(DELAY).smt2: $(RTL)/delayw.v
-	yosys -ql $(DELAY).yslog -s $(DELAY).ys
+.PHONY: $(LFSR)
+$(LFSR): $(LFSR)_prf/PASS
+$(LFSR)_prf/PASS: ../../rtl/$(LFSR).v $(LFSR).sby
+	sby -f $(LFSR).sby prf
 
-$(LFSR) : $(LFSR).check
-$(LFSR).check: $(LFSR).smt2
-	@rm -f $(LFSR).check
-	$(SMTBMC) --presat $(ARGS) -t  60 --dump-vcd $(LFSR).vcd $(LFSR).smt2
-	$(SMTBMC)       -i $(ARGS) -t  60 --dump-vcd $(LFSR).vcd $(LFSR).smt2
-	$(SMTBMC) -g       $(ARGS) -t 120 --dump-vcd $(LFSR).vcd $(LFSR).smt2
-	touch $@
+.PHONY: $(EQUIV)
+$(EQUIV) : $(EQUIV)_prf/PASS
+$(EQUIV)_prf/PASS: $(EQUIV).sby $(EQUIV).v ../../rtl/lfsr_fib.v ../../rtl/lfsr_gal.v
+	sby -f $(EQUIV).sby prf
 
-$(EQUIV) : $(EQUIV).check
-$(EQUIV).check: $(EQUIV).smt2
-	@rm -f $(EQUIV).check
-	$(SMTBMC) --presat $(ARGS) -t  16 --dump-vcd $(EQUIV).vcd $(EQUIV).smt2
-	$(SMTBMC)       -i $(ARGS) -t  60 --dump-vcd $(EQUIV).vcd $(EQUIV).smt2
-	$(SMTBMC) -g       $(ARGS) -t 120 --dump-vcd $(EQUIV).vcd $(EQUIV).smt2
-	touch $@
+$(DELAY) : $(DELAY)_prf/PASS
+$(DELAY)_prf/PASS: ../../rtl/$(DELAY).v $(DELAY).sby
+	sby -f $(DELAY).sby prf
 
-$(DELAY) : $(DELAY).check
-$(DELAY).check: $(DELAY).smt2
-	@rm -f $(DELAY).check
-	$(SMTBMC) --presat $(ARGS) -t  16 --dump-vcd $(DELAY).vcd $(DELAY).smt2
-	$(SMTBMC)       -i $(ARGS) -t  60 --dump-vcd $(DELAY).vcd $(DELAY).smt2
-	$(SMTBMC) -g       $(ARGS) -t 120 --dump-vcd $(DELAY).vcd $(DELAY).smt2
-	touch $@
+$(BCAR) : $(BCAR)_prf/PASS
+$(BCAR)_prf/PASS: $(BCAR).sby ../../rtl/boxcar.v
+	sby -f $(BCAR).sby prf
 
-$(FFIR) : $(FFIR).check
-$(FFIR).check: ../../rtl/$(FFIR).v $(FFIR).sby
-	sby -f $(FFIR).sby
-	touch $@
+.PHONY: $(FFIR)
+$(FFIR) : $(FFIR)_prf/PASS
+$(FFIR)_prf/PASS: ../../rtl/$(FFIR).v $(FFIR).sby
+	sby -f $(FFIR).sby prf
 
 .PHONY: $(HIST)
 $(HIST) : $(HIST)_prf/PASS $(HIST)_cvr/PASS
@@ -104,8 +93,9 @@ $(HIST)_cvr/PASS: ../../rtl/$(HIST).v $(HIST).sby
 	sby -f $(HIST).sby cvr
 
 clean:
-	rm -f  $(LFSR).smt2   $(LFSR)*.vcd  $(LFSR).yslog
-	rm -f  $(EQUIV).smt2  $(EQUIV)*.vcd $(EQUIV).yslog
-	rm -f  $(DELAY).smt2  $(DELAY)*.vcd $(DELAY).yslog
+	rm -rf  $(LFSR)_*/
+	rm -rf $(EQUIV)_*/
+	rm -rf $(DELAY)_*/
+	rm -rf $(BCAR)_*/
 	rm -rf $(FFIR)/ $(FFIR)_first/ $(FFIR)_second/
 	rm -f  *.check

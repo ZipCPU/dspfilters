@@ -1,0 +1,16 @@
+[tasks]
+prf
+
+[options]
+mode prove
+
+[engines]
+smtbmc boolector
+
+[script]
+read -formal -D DELAY -formal delayw.v
+hierarchy -top delayw -chparam DW 1 -chparam LGDLY 3
+prep -top delayw
+
+[files]
+../../rtl/delayw.v

@@ -137,14 +137,6 @@ module	lfsr(i_clk, i_reset, i_ce, o_word);
 `ifdef	LFSR
 	reg	f_last_clk;
 
-	initial	assume(!i_clk);
-	initial	assume(f_last_clk);
-	always @($global_clock)
-	begin
-		assume(i_clk == !f_last_clk);
-		f_last_clk = i_clk;
-	end
-
 	initial	assume(i_reset);
 `endif
 

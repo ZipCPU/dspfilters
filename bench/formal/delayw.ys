@@ -1,5 +1,0 @@
-read_verilog -D DELAY -formal ../../rtl/delayw.v
-chparam -set DW 1 -set LGDLY 3 delayw
-prep -top delayw -nordff
-opt -share_all
-write_smt2 -wires delayw.smt2
