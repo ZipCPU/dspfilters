@@ -47,7 +47,7 @@ VDIRFB:= $(FBDIR)/obj_dir
 VERILATOR := verilator
 VFLAGS := -O3 -Wall -MMD -trace -cc
 SUBMAKE := make --no-print-directory -C
-CORES := smplfir iiravg genericfir fastfir boxcar lfsr_gal lfsr_fib delayw lfsr slowfil slowsymf shalfband slowfil_srl
+CORES := smplfir iiravg genericfir fastfir boxcar lfsr_gal lfsr_fib delayw lfsr slowfil slowsymf shalfband slowfil_srl subfildown histogram
 .PHONY: all $(CORES)
 all: $(CORES) # symfil
 
@@ -55,7 +55,7 @@ genericfir:	$(VDIRFB)/Vgenericfir__ALL.a
 fastfir:	$(VDIRFB)/Vfastfir__ALL.a
 symfil:		$(VDIRFB)/Vsymfil__ALL.a
 slowfil:	$(VDIRFB)/Vslowfil__ALL.a
-slowfil:	$(VDIRFB)/Vslowfil_srl__ALL.a
+slowfil_srl:	$(VDIRFB)/Vslowfil_srl__ALL.a
 slowsymf:	$(VDIRFB)/Vslowsymf__ALL.a
 shalfband:	$(VDIRFB)/Vshalfband__ALL.a
 smplfir:	$(VDIRFB)/Vsmplfir__ALL.a
@@ -65,6 +65,8 @@ lfsr_gal:	$(VDIRFB)/Vlfsr_gal__ALL.a
 lfsr_fib:	$(VDIRFB)/Vlfsr_fib__ALL.a
 lfsr:		$(VDIRFB)/Vlfsr__ALL.a
 delayw:		$(VDIRFB)/Vdelayw__ALL.a
+histogram:	$(VDIRFB)/Vhistogram__ALL.a
+subfildown:	$(VDIRFB)/Vsubfildown__ALL.a
 
 $(VDIRFB)/V%.cpp $(VDIRFB)/V%.h $(VDIRFB)/V%.mk: $(FBDIR)/%.v
 	$(VERILATOR) $(VFLAGS) $*.v
@@ -85,7 +87,7 @@ $(VDIRFB)/Vslowfil__ALL.a: $(VDIRFB)/Vslowfil.mk
 	$(SUBMAKE) $(VDIRFB)/ -f Vslowfil.mk Vslowfil__ALL.a
 
 $(VDIRFB)/Vslowfil_srl__ALL.a: $(VDIRFB)/Vslowfil_srl.mk
-	$(SUBMAKE) $(VDIRFB)/ -f Vslowfil.mk Vslowfil_srl__ALL.a
+	$(SUBMAKE) $(VDIRFB)/ -f Vslowfil_srl.mk Vslowfil_srl__ALL.a
 
 $(VDIRFB)/Vslowsymf__ALL.a: $(VDIRFB)/Vslowsymf.mk
 	$(SUBMAKE) $(VDIRFB)/ -f Vslowsymf.mk Vslowsymf__ALL.a
@@ -113,6 +115,12 @@ $(VDIRFB)/Vlfsr__ALL.a: $(VDIRFB)/Vlfsr.mk
 
 $(VDIRFB)/Vdelayw__ALL.a: $(VDIRFB)/Vdelayw.mk
 	$(SUBMAKE) $(VDIRFB)/ -f Vdelayw.mk Vdelayw__ALL.a
+
+$(VDIRFB)/Vsubfildown__ALL.a: $(VDIRFB)/Vsubfildown.mk
+	$(SUBMAKE) $(VDIRFB)/ -f Vsubfildown.mk Vsubfildown__ALL.a
+
+$(VDIRFB)/Vhistogram__ALL.a: $(VDIRFB)/Vhistogram.mk
+	$(SUBMAKE) $(VDIRFB)/ -f Vhistogram.mk Vhistogram__ALL.a
 
 .PHONY: clean
 clean:

@@ -40,7 +40,7 @@
 ################################################################################
 ##
 ##
-TESTS := lfsr lfsr_equiv fastfir
+TESTS := lfsr lfsr_equiv fastfir histogram
 .PHONY: $(TESTS)
 all: $(TESTS)
 RTL := ../../rtl
@@ -49,6 +49,7 @@ LFSR=lfsr
 EQUIV=lfsr_equiv
 DELAY=delayw
 FFIR=fastfir
+HIST=histogram
 
 SMTBMC  := yosys-smtbmc
 # SOLVER  := -s z3
@@ -94,6 +95,13 @@ $(FFIR) : $(FFIR).check
 $(FFIR).check: ../../rtl/$(FFIR).v $(FFIR).sby
 	sby -f $(FFIR).sby
 	touch $@
+
+.PHONY: $(HIST)
+$(HIST) : $(HIST)_prf/PASS $(HIST)_cvr/PASS
+$(HIST)_prf/PASS: ../../rtl/$(HIST).v $(HIST).sby
+	sby -f $(HIST).sby prf
+$(HIST)_cvr/PASS: ../../rtl/$(HIST).v $(HIST).sby
+	sby -f $(HIST).sby cvr
 
 clean:
 	rm -f  $(LFSR).smt2   $(LFSR)*.vcd  $(LFSR).yslog

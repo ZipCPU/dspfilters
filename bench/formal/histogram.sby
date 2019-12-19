@@ -1,0 +1,21 @@
+[tasks]
+cvr
+prf
+
+[options]
+cvr: mode cover
+prf: mode prove
+prf: depth 18
+cvr: depth 48
+
+[engines]
+smtbmc
+
+[script]
+read -formal histogram.v
+prf: hierarchy -top histogram -chparam AW 4
+cvr: hierarchy -top histogram -chparam AW 4 -chparam NAVGS 16
+prep -top histogram
+
+[files]
+../../rtl/histogram.v
