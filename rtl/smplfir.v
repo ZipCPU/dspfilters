@@ -49,17 +49,17 @@ module	smplfir(i_clk, i_ce, i_val, o_val);
 	localparam			OW=IW+1;
 	input	wire			i_clk, i_ce;
 	input	wire	[(IW-1):0]	i_val;
-	output	wire	[(OW-1):0]	o_val;
+	output	reg	[(OW-1):0]	o_val;
 
 	reg	[(IW-1):0]	delayed;
 
 	initial	delayed = 0;
 	always @(posedge i_clk)
-		if (i_ce)
-			delayed <= i_val;
+	if (i_ce)
+		delayed <= i_val;
 
 	always @(posedge i_clk)
-		if (i_ce)
-			o_val <= i_val + delayed;
+	if (i_ce)
+		o_val <= i_val + delayed;
 
 endmodule
