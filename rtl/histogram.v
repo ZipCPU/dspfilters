@@ -35,11 +35,11 @@
 //	better, the core can handle a data rate up to and including the system
 //	clock rate.
 //
-// Resource usage: For 12-bit samples, and averaging 64kB samples, this
+// Resource usage: For 12-bit samples, and averaging 64k samples, this
 //		core will use (Xilinx baseline):
 //
-//	100	Flip-Flops
-//	228	LUTs maximum (Yosys estimate: 191 with packing)
+//	102	Flip-Flops
+//	167	LUTs
 //	  8	RAMB36E1's	(i.e. 4k RAM words, each of 17 bits)
 //
 // Creator:	Dan Gisselquist, Ph.D.
@@ -72,6 +72,8 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
 //
+`default_nettype none
+//
 module	histogram #(
 	parameter	NAVGS = 65536,
 	localparam	ACCW = $clog2(NAVGS+1),
@@ -79,16 +81,31 @@ module	histogram #(
 	parameter	AW = 12,
 	localparam	MEMSZ = (1<<(AW+1))
 	) (
-	input	wire	i_clk,
-	input	wire	i_reset,
+`ifdef	AXIDOUBLE
+	input	wire		S_AXI_ACLK,
+	input	wire		S_AXI_ARESETN,
 	//
-	input	wire	i_wb_cyc, i_wb_stb, i_wb_we,
+	input	wire		S_AXI_AWVALID,
+	input	wire		S_AXI_WDATA,
+	input	wire		S_AXI_WSTRB,
+	output	wire	[1:0]	S_AXI_BRESP,
+	//
+	input	wire 		S_AXI_ARVALID,
+	input	wire [AW+ADDRLSB-1:0]	S_AXI_ARADDR,
+	output	wire [DW-1:0]	S_AXI_RDATA,
+	output	wire	[1:0]	S_AXI_RRESP,
+`else
+	input	wire		i_clk,
+	input	wire		i_reset,
+	//
+	input	wire		i_wb_cyc, i_wb_stb, i_wb_we,
 	input	wire [AW-1:0]	i_wb_addr,
 	input	wire [DW-1:0]	i_wb_data,
 	input	wire [DW/8-1:0]	i_wb_sel,
 	output	reg		o_wb_stall,
 	output	reg		o_wb_ack,
 	output	reg [DW-1:0]	o_wb_data,
+`endif
 	//
 	input	wire		i_ce,
 	input	wire [AW-1:0]	i_sample,
@@ -96,36 +113,49 @@ module	histogram #(
 	output	reg		o_int
 	);
 
+`ifdef	AXIDOUBLE
+	wire	clk   = S_AXI_ACLK;
+	wire	reset = !S_AXI_ARESETN;
+	wire	bus_write = S_AXI_AWVALID && S_AXI_WSTRB != 0;
+	// Under the AXIDOUBLE protocol, S_AXI_AWVALID = S_AXI_WVALID
+	//   S_AXI_AWREADY = S_AXI_WREADY = 1, S_AXI_BREADY = 1,
+	//   S_AXI_ARREADY = 1, and S_AXI_RREADY = 1
+`else
+	wire	clk   = i_clk;
+	wire	reset = i_reset;
+	wire	bus_write = i_wb_cyc && i_wb_we;
+`endif
+
 	reg	[ACCW-1:0]		count;
 	reg	[ACCW-1:0]		mem	[0:MEMSZ-1];
 	reg				start_reset, resetpipe, activemem,
-					wb_restart, last_resetpipe,
-					bypass_resetpipe;
+					first_reset_clock;
 	reg	[2:0]			cepipe;
-	reg	[ACCW-1:0]		memavg, memnew, bypass_data;
-	reg	[AW-1:0]		r_sample, memaddr, bypass_addr;
+	reg	[ACCW-1:0]		memval, memnew, bypass_data;
+	reg	[AW:0]			r_sample, memaddr, bypass_addr;
 
 	//
 	// Zero out our memory initially
+`ifndef	FORMAL
 	integer	ik;
 	initial	begin
 		for(ik=0; ik<MEMSZ; ik=ik+1)
 			mem[ik] = 0;
 	end
+`endif
 
 	//
 	// Count how many samples we've used in our block average
 	//
 	initial	count = 0;
-	always @(posedge i_clk)
-	if (i_reset || start_reset)
-	begin
+	always @(posedge clk)
+	if (start_reset || resetpipe)
 		count <= 0;
-	end else if (i_ce)
+	else if (i_ce)
 	begin
-		if (count == NAVGS[ACCW-1:0])
+		if (count == NAVGS[ACCW-1:0]-1)
 			count <= 0;
-		else if (!start_reset && !resetpipe)
+		else
 			count <= count + 1;
 	end
 
@@ -137,119 +167,149 @@ module	histogram #(
 	// On the second cause only we switch memories.
 	//
 	initial	start_reset = 1;
-	initial	wb_restart = 1;
-	always @(posedge i_clk)
+	always @(posedge clk)
 	begin
 		start_reset <= 0;
-		wb_restart    <= 0;
 
-		if (i_reset)
-		begin
+		if (i_ce && (count == NAVGS[ACCW-1:0]-1))
 			start_reset <= 1;
-			wb_restart  <= 1;
-		end else if (i_ce && !start_reset && !resetpipe)
-		begin
-			if (count == NAVGS[ACCW-1:0])
-				start_reset <= 1;
-		end
 
-		if (i_wb_stb && i_wb_we)
-		begin
+		if (bus_write)
 			start_reset <= 1;
-			wb_restart  <= 1;
-		end
+
+		if (resetpipe)
+			start_reset <= 0;
+		if (reset)
+			start_reset <= 1;
 	end
+
+	always @(posedge clk)
+		first_reset_clock <= start_reset;
 
 	initial	resetpipe = 0;
-	always @(posedge i_clk)
-	begin
-		if (i_reset || start_reset)
-			resetpipe <= 1;
-		else if (&memaddr)
-			resetpipe <= 0;
-	end
-
-	initial	{ bypass_resetpipe, last_resetpipe } = 0;
-	always @(posedge i_clk)
-		{ bypass_resetpipe, last_resetpipe }
-			<= { last_resetpipe, resetpipe };
+	always @(posedge clk)
+	if (start_reset || first_reset_clock)
+		resetpipe <= 1;
+	else if (&memaddr[AW-1:0])
+		resetpipe <= 0;
 
 	initial	activemem = 0;
 	initial	o_int = 0;
-	always @(posedge i_clk)
+	always @(posedge clk)
 	begin
 		o_int <= 0;
-		if (i_reset)
-			activemem <= 0;
-		else if (start_reset && !wb_restart)
+		if (i_ce && !start_reset && count == NAVGS[ACCW-1:0] -1)
 		begin
 			activemem <= !activemem;
 			o_int <= 1;
 		end
+
+		if (reset)
+			o_int <= 0;
 	end
 
+	//
+	// Track i_ce through our three clocks of operations.  We'll then use
+	// cepipe[1] as our flag to write to memory.  cepipe[2:1] also serve
+	// as flags for operand forwarding without needing to read from memory.
+	//
 	initial	cepipe = 0;
-	always @(posedge i_clk)
-	if (i_reset || start_reset || resetpipe)
+	always @(posedge clk)
+	if (resetpipe)
 		cepipe <= 3'b010;
 	else
-		cepipe <= { cepipe[1:0], (!resetpipe && i_ce) };
+		cepipe <= { cepipe[1:0], i_ce };
 
-	always @(posedge i_clk)
-	if (i_ce)
-	begin
-		memavg <= mem[{ activemem, i_sample }];
-		r_sample <= i_sample;
-	end
+	//
+	// Cycle one: Read from memory, keep track of the address
+	//
+	always @(posedge clk)
+		memval <= mem[{ activemem, i_sample }];
 
-	always @(posedge i_clk)
-	if (i_reset || start_reset)
+	always @(posedge clk)
+		r_sample <= { activemem, i_sample };
+
+	//
+	// Cycle two:
+	//	Add to our memory value, forward the address into memaddr
+	//    UNLESS: we are in reset.  If resetting, set ourselves up to
+	//	write zeros to an ever increasing address.
+	//
+	initial	memaddr = 0;
+	initial	memnew  = 0;
+	always @(posedge clk)
+	if (resetpipe)
 	begin
 		memnew  <= 0;
-		memaddr <= 0;
-	end else if (resetpipe)
-	begin
-		memnew  <= 0;
+		//
 		memaddr <= memaddr + 1;
-	end else if (cepipe[0])
-	begin
+		if (first_reset_clock)
+			memaddr <= 0;
+		memaddr[AW] <= activemem;
+	end else begin
 		memaddr <= r_sample;
-		if (cepipe[1] && r_sample == memaddr && !last_resetpipe)
+
+		//
+		// Add one to the histogram bin of our incoming sample value
+		//
+		memnew  <= memval + 1;
+
+		// Unless ... we just calculated this value and it hasn't been
+		// written to memory yet
+		if (cepipe[1] && r_sample == memaddr)
 			memnew  <= memnew + 1;
-		else if (cepipe[2] && r_sample == bypass_addr && !bypass_resetpipe)
+		// OR ... we're writing it to memory now, and it'll still take
+		// another clock cycle to read it back out.
+		else if (cepipe[2] && r_sample == bypass_addr)
 			memnew  <= bypass_data + 1;
-		else
-			memnew  <= memavg + 1;
 	end
 
 	//
-	// Write to memory
+	// Clock three: Write to memory
 	//
-	always @(posedge i_clk)
+	always @(posedge clk)
 	if (cepipe[1])
-		mem[{ activemem, memaddr }] <= memnew;
+		mem[memaddr] <= memnew;
 
-	always @(posedge i_clk)
-	if (cepipe[1])
+	//
+	// Keep track of data necessary to bypass the memory
+	//
+	always @(posedge clk)
 	begin
 		bypass_data <= memnew;
 		bypass_addr <= memaddr; 
 	end
 
+	////////////////////////////////////////////////////////////////////////
 	//
-	// Handle the bus
+	// Handle the bus interactions
 	//
-	always @(posedge i_clk)
+	////////////////////////////////////////////////////////////////////////
+	//
+`ifdef	AXIDOUBLE
+	always @(posedge clk)
+	begin
+		S_AXI_RDATA <= 0;
+		S_AXI_RDATA[ACCW-1:0] <= mem[{ !activemem, i_wb_addr }];
+	end
+	
+	always @(*)
+		S_AXI_BRESP = 2'b00;
+	always @(*)
+		S_AXI_RRESP = 2'b00;
+`else
+	always @(posedge clk)
 	begin
 		o_wb_data <= 0;
 		o_wb_data[ACCW-1:0] <= mem[{ !activemem, i_wb_addr }];
 	end
 
-	always @(posedge i_clk)
-		o_wb_ack <= !i_reset && i_wb_stb;
+	always @(posedge clk)
+		o_wb_ack <= !reset && i_wb_stb;
 
 	always @(*)
 		o_wb_stall = 1'b0;
+`endif
 
 	//
 	// Keep Verilator happy
@@ -268,13 +328,20 @@ module	histogram #(
 ////////////////////////////////////////////////////////////////////////////////
 `ifdef	FORMAL
 	(* anyconst *)	reg [AW:0]	f_addr;
-			reg [ACCW-1:0]	f_data;
+			reg [ACCW-1:0]	f_mem_data, f_this_counts;
 	reg	[2:0]	f_this_pipe;
 
 	reg	f_past_valid;
 	initial	f_past_valid = 0;
-	always @(posedge i_clk)
+	always @(posedge clk)
 		f_past_valid <= 1;
+
+	always @(*)
+		f_mem_data = mem[f_addr];
+
+	always @(*)
+	if (!f_past_valid)
+		assume(mem[f_addr] == 0);
 
 	////////////////////////////////////////////////////////////////////////
 	//
@@ -282,27 +349,19 @@ module	histogram #(
 	//
 	////////////////////////////////////////////////////////////////////////
 	//
-	always @(*)
-	if (!f_past_valid)
-		assume(i_reset);
-
+`ifdef	AXIDOUBLE
+`else
 	always @(*)
 	if (!i_wb_cyc)
 		assume(!i_wb_stb);
-
-	////////////////////////////////////////////////////////////////////////
-	//
-	// The counter is not allowed to overflow
-	//
-	always @(*)
-		assert(count <= NAVGS);
+`endif
 
 	////////////////////////////////////////////////////////////////////////
 	//
 	// Contract proofs
 	//
 	// Pick a particular value to average and consider.  Now we'll prove
-	// that this special data, f_data, will always be less then NAVGS,
+	// that this special data, f_mem_data, will always be less then NAVGS,
 	// and in particular always less than the counter's value of how
 	// many items we've averaged so far in a run.
 	//
@@ -311,87 +370,159 @@ module	histogram #(
 	//
 
 	//
-	// Update our copy of memory on every memory write
+	// Count the number of times our incoming value is received
 	//
-	initial	f_data = 0;
-	always @(posedge i_clk)
-	if (cepipe[1] && { activemem, memaddr } == f_addr)
-		f_data <= memnew;
+	initial	f_this_counts = 0;
+	always @(posedge clk)
+	if (start_reset || resetpipe)
+	begin
+		// Clear our special value on or during any reset
+		if (activemem == f_addr[AW])
+			f_this_counts <= 0;
+
+	end else if (i_ce && { activemem, i_sample } == f_addr)
+		// In all other cases, if we see our special value,
+		// accumulate  it
+		f_this_counts <= f_this_counts + 1;
 
 	//
 	// For tracking bypass issues, keep track of when our special
 	// value is written to
 	//
 	initial	f_this_pipe = 3'b000;
-	always @(posedge i_clk)
-	if (i_reset || start_reset || resetpipe)
+	always @(posedge clk)
+	if (resetpipe)
 		f_this_pipe <= 3'b000;
 	else
-		f_this_pipe <= { f_this_pipe[1:0], (!resetpipe && i_ce
+		f_this_pipe <= { f_this_pipe[1:0], (!start_reset && i_ce
 				&& activemem == f_addr[AW]
 				&& i_sample == f_addr[AW-1:0]) };
+
+	//
+	//
+	//
+	always @(*)
+	if (resetpipe && activemem == f_addr[AW])
+		assert(f_this_counts == 0);
+	else if (f_this_pipe == 0)
+		assert(f_this_counts == f_mem_data);
+
+	//
+	// Check operand forwarding
+	//
+	always @(posedge clk)
+	if (f_this_pipe == 3'b001)
+		assert(memval == $past(f_this_counts));
+
+	always @(posedge clk)
+	if (f_this_pipe[1])
+		assert(memnew <= $past(f_this_counts));
+
+	always @(posedge clk)
+	if (f_this_pipe[2])
+		assert(bypass_data == $past(f_this_counts,2));
+
+	//
+	// Prove that our special memory value matches this count
+	//
+	always @(posedge clk)
+	if (f_past_valid && $past(f_past_valid) && cepipe[1]
+			&& { activemem, memaddr } == f_addr
+			&& !resetpipe)
+		assert(f_mem_data == $past(f_this_counts,2));
+
+	always @(*)
+	if (resetpipe && !first_reset_clock
+			&& activemem == f_addr[AW]
+			&& memaddr[AW-1:0] > f_addr[AW-1:0])
+		assert(f_mem_data == 0);
 
 	//
 	// Induction check: Make certain that if f_this_pipe is ever true, then
 	// cepipe is also true for that same bit.
 	//
 	always @(*)
+	if (!resetpipe)
 		assert((f_this_pipe & cepipe) == f_this_pipe);
 
+	////////////////////////////////////////////////////////////////////////
+	//
+	// The counter is not allowed to overflow
+	//
 	always @(*)
-	if (!last_resetpipe && f_this_pipe[0])
-		assert(activemem == f_addr[AW] && r_sample == f_addr[AW-1:0]);
+		assert(count < NAVGS);
 
-	always @(posedge i_clk)
-	if (cepipe[1] && { activemem, memaddr } == f_addr)
-		f_data <= memnew;
+	////////////////////////////////////////////////////////////////////////
+	//
+	// Our counter isn't allowed to generate anything over NAVGS--EVER
+	//
+	////////////////////////////////////////////////////////////////////////
+	//
+	//
+	always @(*)
+		assert(f_mem_data <= NAVGS);
 
 	always @(*)
-	begin
-		assert(mem[f_addr] == f_data);
-		assert(f_data <= NAVGS);
-		if (!start_reset && !resetpipe)
-		begin
-			if (activemem == f_addr[AW])
-				assert(f_data <= count);
-		end
-		if (!start_reset && f_this_pipe[2])
-			assert(bypass_data <= count + f_this_pipe[1] + f_this_pipe[0]);
-	end
+		assert(f_this_counts <= NAVGS);
 
-	always @(posedge i_clk)
-		if (!start_reset && !resetpipe
-			&&(activemem == f_addr[AW])
-			&&(f_addr[AW-1:0] == memaddr))
-			assert(memnew <= $past(count));
+	always @(*)
+	if (!start_reset && !resetpipe && activemem == f_addr[AW])
+		assert(f_this_counts <= count);
+
 
 	////////////////////////////////////////////////////////////////////////
 	//
 	// Reset sequence checks
 	//
 	always @(*)
-	if (resetpipe && activemem == f_addr[AW] && count > f_addr[AW-1:0])
-		assert(f_data == 0);
-
-	always @(*)
 	if (resetpipe)
 		assert(count == 0);
 
+	////////////////////////////////////////////////////////////////////////
+	//
+	// Interrupt / memory swap check
+	//
+	always @(posedge i_clk)
+	if (f_past_valid && $past(!reset && !start_reset && i_ce && !bus_write)
+		&& $past(count == NAVGS-1))
+	begin
+		assert(o_int);
+		assert($changed(activemem));
+		assert(start_reset);
+		assert(count == 0);
+	end
+
+	always @(posedge i_clk)
+	if (f_past_valid && !$past(reset) && $changed(activemem))
+		assert(o_int);
+	else
+		assert(!o_int);
 
 `ifdef	VERIFIC
-	assert property (@(posedge i_clk)
-		disable iff (i_reset || start_reset || resetpipe)
+	assert property (@(posedge clk)
+		start_reset
+		|=> first_reset_clock && resetpipe
+		##1 resetpipe && memaddr[AW-1:0] == 0
+			&& memaddr[AW] == activemem);
+
+	assert property (@(posedge clk)
 		i_ce && (i_sample == { activemem, f_addr})
-		|=> ##2 f_data == $past(f_data + 1));
+				&& !start_reset && !resetpipe
+		|=> ##2 f_mem_data == $past(f_mem_data + 1));
 
-	assert property (@(posedge i_clk)
+	assert property (@(posedge clk)
 		$fell(resetpipe) && activemem == f_addr[AW]
-		|=> f_data == 0);
+		|=> f_mem_data == 0);
 
-	assert property (@(posedge i_clk)
-		i_wb_stb && !i_reset |=> o_wb_ack);
+	assert property (@(posedge clk)
+		i_wb_stb && !reset |=> o_wb_ack);
 
+	assert property (@(posedge clk)
+		!reset && !start_reset && i_ce && !bus_write
+		&& count == NAVGS-1
+		|=> o_int && start_reset && count == 0);
 `endif
+
 	////////////////////////////////////////////////////////////////////////
 	//
 	// Cover checks
@@ -406,29 +537,29 @@ module	histogram #(
 	begin
 
 		always @(*)
-			cover(f_data == 16);
+			cover(f_mem_data == 16);
 	end endgenerate
 
 	generate if (NAVGS <= 16)
 	begin
 		always @(*)
-			cover(start_reset && !wb_restart && f_data == 0);
+			cover(start_reset && f_mem_data == 0);
 
 		always @(*)
-			cover(f_data == NAVGS);
+			cover(f_mem_data == NAVGS);
 
 `ifdef	VERIFIC
-		cover property (@(posedge i_clk)
+		cover property (@(posedge clk)
 			i_wb_stb && (i_wb_addr == f_addr[AW-1:0]) && activemem
 				&& f_addr[AW] == !activemem
-			##1 o_wb_ack && o_wb_data[ACCW-1:0] == f_data
-				&& f_data == 0);
+			##1 o_wb_ack && o_wb_data[ACCW-1:0] == f_mem_data
+				&& f_mem_data == 0);
 
-		cover property (@(posedge i_clk)
+		cover property (@(posedge clk)
 			i_wb_stb && (i_wb_addr == f_addr[AW-1:0]) && activemem
 				&& f_addr[AW] == !activemem
-			##1 o_wb_ack && o_wb_data[ACCW-1:0] == f_data
-				&& f_data == NAVGS);
+			##1 o_wb_ack && o_wb_data[ACCW-1:0] == f_mem_data
+				&& f_mem_data == NAVGS);
 `endif
 	end endgenerate
 `endif

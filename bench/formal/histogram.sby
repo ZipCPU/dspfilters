@@ -5,15 +5,15 @@ prf
 [options]
 cvr: mode cover
 prf: mode prove
-prf: depth 18
-cvr: depth 48
+prf: depth 6
+cvr: depth 40
 
 [engines]
-smtbmc
+smtbmc boolector
 
 [script]
 read -formal histogram.v
-prf: hierarchy -top histogram -chparam AW 4
+# prf: hierarchy -top histogram -chparam AW 4
 cvr: hierarchy -top histogram -chparam AW 4 -chparam NAVGS 16
 prep -top histogram
 
