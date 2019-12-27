@@ -78,7 +78,6 @@ module	slowfil_srl(i_clk, i_reset, i_tap_wr, i_tap, i_ce, i_sample, o_ce, o_resu
 	reg	[(TW-1):0]	tapmem	[0:(MEMSZ-1)];	// Coef memory
 	reg signed [(TW-1):0]	tap;		// Value read from coef memory
 
-	//reg	[(LGNTAPS-1):0]	dwidx, didx;	// Data write and read indices
 	reg	[(LGNTAPS-1):0]	tidx;		// Coefficient read index
 	reg	[(IW-1):0]	dsrl	[0:(MEMSZ-1)];	// Data memory
 	reg signed [(IW-1):0]	data;		// Data value read from memory
@@ -135,24 +134,17 @@ module	slowfil_srl(i_clk, i_reset, i_tap_wr, i_tap, i_ce, i_sample, o_ce, o_resu
 
 	// Notice how this data writing section is *independent* of the reset,
 	// depending only upon new sample data.
-	//initial	dwidx = 0;
-	//always @(posedge i_clk)
-	//	if (i_ce)
-	//		dwidx <= dwidx + 1'b1;
-	//always @(posedge i_clk)
-	//	if (i_ce)
-	//		dmem[dwidx] <= i_sample;
-    always @(posedge i_clk)
-        if (i_ce)
-            dsrl[0] <= i_sample;
-    generate
-        genvar i;
-        for (i = 1; i < MEMSZ; i=i+1) begin
-        	always @(posedge i_clk)
-                if (i_ce)
-                    dsrl[i] <= dsrl[i-1];
-        end
-    endgenerate
+	always @(posedge i_clk)
+		if (i_ce)
+			dsrl[0] <= i_sample;
+	generate
+		genvar i;
+		for (i = 1; i < MEMSZ; i=i+1) begin
+			always @(posedge i_clk)
+				if (i_ce)
+					dsrl[i] <= dsrl[i-1];
+		end
+	endgenerate
 
 	//
 	//
@@ -188,17 +180,14 @@ module	slowfil_srl(i_clk, i_reset, i_tap_wr, i_tap, i_ce, i_sample, o_ce, o_resu
 		else
 			pre_acc_ce[2:1] <= pre_acc_ce[1:0];
 
-	//initial	didx = 0;
 	initial	tidx = 0;
 	always @(posedge i_clk)
-	if (i_ce)
-	begin
-		//didx <= dwidx;
-		tidx <= 0;
-	end else begin
-		//didx <= didx - 1'b1;
-		tidx <= tidx + 1'b1;
-	end
+		if (i_ce)
+		begin
+			tidx <= 0;
+		end else begin
+			tidx <= tidx + 1'b1;
+		end
 
 	// m_ce is valid when the first index is valid
 	initial	m_ce = 1'b0;

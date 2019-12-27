@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Filename:	slowfil_tb.cpp
+// Filename:	slowfil_srl_tb.cpp
 //
 // Project:	DSP Filtering Example Project
 //
@@ -68,11 +68,11 @@ static	int     nextlg(int vl) {
 	return r;
 }
 
-class	SLOWFIL_TB : public FILTERTB<Vslowfil_srl> {
+class	SLOWFIL_SRL_TB : public FILTERTB<Vslowfil_srl> {
 public:
 	bool		m_done;
 
-	SLOWFIL_TB(void) {
+	SLOWFIL_SRL_TB(void) {
 		IW(::IW);
 		TW(::TW);
 		OW(::OW);
@@ -107,11 +107,11 @@ public:
 	}
 };
 
-SLOWFIL_TB	*tb;
+SLOWFIL_SRL_TB	*tb;
 
 int	main(int argc, char **argv) {
 	Verilated::commandArgs(argc, argv);
-	tb = new SLOWFIL_TB();
+	tb = new SLOWFIL_SRL_TB();
 
 	const int64_t	TAPVALUE = -(1<<(IW-1));
 	const int64_t	IMPULSE  =  (1<<(IW-1))-1;
