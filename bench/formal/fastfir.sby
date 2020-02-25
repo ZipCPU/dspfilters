@@ -6,7 +6,7 @@ mode prove
 prf:  depth 32
 
 [engines]
-smtbmc
+smtbmc boolector
 
 [script]
 read_verilog -formal firtap.v

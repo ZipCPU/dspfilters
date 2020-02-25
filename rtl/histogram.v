@@ -123,7 +123,7 @@ module	histogram #(
 `else
 	wire	clk   = i_clk;
 	wire	reset = i_reset;
-	wire	bus_write = i_wb_cyc && i_wb_we;
+	wire	bus_write = i_wb_stb && i_wb_we;
 `endif
 
 	reg	[ACCW-1:0]		count;

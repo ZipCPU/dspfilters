@@ -48,6 +48,7 @@ typedef	std::complex<double>	COMPLEX;
 #endif
 
 template <class VFLTR> class FILTERTB : public TESTB<VFLTR> {
+protected:
 	int64_t	*m_hk;
 	int	m_delay, m_iw, m_ow, m_tw, m_ntaps, m_nclks;
 	FILE	*result_fp;

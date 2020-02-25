@@ -37,8 +37,8 @@
 //	Variable coefficients:
 //		To load coefficients if FIXED_COEFFS is set to zero, set the
 //		i_reset flag for one cycle.  Ever after wards, if/when
-//		i_wr_coeff is set a new value of coefficient memory will be set
-//		to the input i_coeff value.  The coefficient pointer will move
+//		i_tap_wr is set a new value of coefficient memory will be set
+//		to the input i_tap value.  The coefficient pointer will move
 //		forward with every coefficient write.  if too many values are
 //		written, the coefficient pointer will just return to zero and
 //		rewrite previously written coefficients.
@@ -95,7 +95,7 @@
 `default_nettype	none
 //
 //
-module	subfildown(i_clk, i_reset, i_wr_coeff, i_coeff,
+module	subfildown(i_clk, i_reset, i_tap_wr, i_tap,
 		i_ce, i_sample, o_ce, o_result);
 	//
 	// Bit widths: input width (IW), output bit-width (OW), and coefficient
@@ -129,8 +129,8 @@ module	subfildown(i_clk, i_reset, i_wr_coeff, i_coeff,
 
 	input	wire		i_clk, i_reset;
 	//
-	input	wire		i_wr_coeff;
-	input	wire [(CW-1):0]	i_coeff;
+	input	wire		i_tap_wr;
+	input	wire [(CW-1):0]	i_tap;
 	//
 	input	wire		i_ce;
 	input	wire [(IW-1):0]	i_sample;
@@ -177,7 +177,7 @@ module	subfildown(i_clk, i_reset, i_wr_coeff, i_coeff,
 		// Make Verilator's -Wall happy
 		// verilator lint_off UNUSED
 		wire	ignored_inputs;
-		assign	ignored_inputs = &{ 1'b0, i_wr_coeff, i_coeff };
+		assign	ignored_inputs = &{ 1'b0, i_tap_wr, i_tap };
 		// verilator lint_on  UNUSED
 	end else begin : LOAD_COEFFICIENTS
 		// Coeff memory write index
@@ -187,15 +187,15 @@ module	subfildown(i_clk, i_reset, i_wr_coeff, i_coeff,
 		always @(posedge i_clk)
 		if (i_reset)
 			wr_coeff_index <= 0;
-		else if (i_wr_coeff)
+		else if (i_tap_wr)
 			wr_coeff_index <= wr_coeff_index+1'b1;
 
 		if (INITIAL_COEFFS != 0)
 			initial $readmemh(INITIAL_COEFFS, cmem);
 
 		always @(posedge i_clk)
-		if (i_wr_coeff)
-			cmem[wr_coeff_index] <= i_coeff;
+		if (i_tap_wr)
+			cmem[wr_coeff_index] <= i_tap;
 
 	end endgenerate
 
@@ -407,9 +407,9 @@ module	subfildown(i_clk, i_reset, i_wr_coeff, i_coeff,
 	assign	unused = &{ 1'b0, rounded_result[AW-OW-1:0] };
 	// verilator lint_on  UNUSED
 
-`ifdef	VERILATOR
-`define	FORMAL
-`endif
+// `ifdef	VERILATOR
+// `define	FORMAL
+// `endif
 `ifdef	FORMAL
 	reg			f_past_valid;
 	reg	[LGNCOEFFS-1:0]	f_start_index, f_written, f_dindex;

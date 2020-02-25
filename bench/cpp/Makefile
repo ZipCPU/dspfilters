@@ -52,8 +52,8 @@ export  $(VERILATOR)
 VROOT  := $(VERILATOR_ROOT)
 VDEFS  := $(shell ./vversion.sh)
 INCS	:= -I$(RTLD)/obj_dir/ -I$(VROOT)/include -I../rtl/obj_dir
-PROGRAMS := slowsymf_tb genericfir_tb fastfir_tb boxcar_tb lfsr_gal_tb lfsr_fib_tb delayw_tb slowfil_tb shalfband_tb lfsr_tb slowfil_srl_tb # symfil_tb
-SOURCES := $(addsuffix .cpp,$(PROGRAMS)) filtertb.cpp
+PROGRAMS := slowsymf_tb genericfir_tb fastfir_tb boxcar_tb lfsr_gal_tb lfsr_fib_tb delayw_tb slowfil_tb shalfband_tb lfsr_tb slowfil_srl_tb subfildown_tb # symfil_tb
+SOURCES := $(addsuffix .cpp,$(PROGRAMS)) filtertb.cpp downsampletb.cpp
 VOBJDR	:= $(RTLD)/obj_dir
 SYSVDR	:= $(VROOT)/include
 VSRC	:= verilated.cpp verilated_vcd_c.cpp
@@ -104,6 +104,9 @@ lfsr_tb: $(OBJDIR)/lfsr_tb.o $(VLIB) $(VOBJDR)/Vlfsr__ALL.a
 
 delayw_tb: $(OBJDIR)/delayw_tb.o $(VLIB) $(VOBJDR)/Vdelayw__ALL.a
 	$(CXX) $(CFLAGS) $(INCS) $^ -o $@
+
+subfildown_tb: $(OBJDIR)/subfildown_tb.o $(VLIB) $(VOBJDR)/Vsubfildown__ALL.a
+	$(CXX) $(FLAGS) $(INCS) $^ -o $@
 
 #
 # The "depends" target, to know what files things depend upon.  The depends

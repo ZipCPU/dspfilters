@@ -1,0 +1,74 @@
+[*]
+[*] GTKWave Analyzer v3.3.66 (w)1999-2015 BSI
+[*] Thu Dec 19 16:25:05 2019
+[*]
+[dumpfile] "(null)"
+[timestart] 0
+[size] 1920 1054
+[pos] -1 -1
+*-5.696020 190 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[sst_width] 196
+[signals_width] 158
+[sst_expanded] 1
+[sst_vpaned_height] 315
+@28
+histogram.i_reset
+histogram.i_clk
+@200
+-
+@28
+[color] 3
+histogram.i_wb_cyc
+[color] 3
+histogram.i_wb_stb
+[color] 3
+histogram.i_wb_we
+@22
+[color] 3
+histogram.i_wb_addr[3:0]
+@28
+histogram.o_wb_stall
+histogram.o_wb_ack
+@22
+histogram.o_wb_data[31:0]
+@200
+-
+@28
+[color] 3
+histogram.i_ce
+@22
+[color] 3
+histogram.i_sample[3:0]
+@200
+-
+@28
+histogram.o_int
+histogram.cepipe[1:0]
+@200
+-
+@22
+histogram.count[16:0]
+@200
+-
+@28
+histogram.start_reset
+histogram.wb_restart
+histogram.resetpipe
+histogram.last_resetpipe
+@29
+histogram.bypass_resetpipe
+@28
+histogram.activemem
+@22
+histogram.memaddr[3:0]
+histogram.memnew[16:0]
+histogram.memavg[16:0]
+@200
+-
+@22
+histogram.f_addr[4:0]
+histogram.f_data[16:0]
+histogram.mem<04>[16:0]
+histogram.bypass_addr[3:0]
+[pattern_trace] 1
+[pattern_trace] 0

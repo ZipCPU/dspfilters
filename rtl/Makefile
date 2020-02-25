@@ -127,6 +127,8 @@ clean:
 	rm -rf $(VDIRFB)/
 
 DEPS=$(wildcard $(VDIRFB)/*.d)
+ifneq ($(MAKECMDGOALS),clean)
 ifneq ($(DEPS),)
 include $(DEPS)
+endif
 endif
