@@ -13,9 +13,11 @@ smtbmc boolector
 
 [script]
 read -formal histogram.v
+read -formal fwb_slave.v
 # prf: hierarchy -top histogram -chparam AW 4
 cvr: hierarchy -top histogram -chparam AW 4 -chparam NAVGS 16
 prep -top histogram
 
 [files]
 ../../rtl/histogram.v
+fwb_slave.v

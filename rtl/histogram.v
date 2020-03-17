@@ -304,6 +304,7 @@ module	histogram #(
 		o_wb_data[ACCW-1:0] <= mem[{ !activemem, i_wb_addr }];
 	end
 
+	initial	o_wb_ack = 1'b0;
 	always @(posedge clk)
 		o_wb_ack <= !reset && i_wb_stb;
 
@@ -349,11 +350,22 @@ module	histogram #(
 	//
 	////////////////////////////////////////////////////////////////////////
 	//
+	localparam	F_LGDEPTH = 2;
 `ifdef	AXIDOUBLE
 `else
+	wire	[F_LGDEPTH-1:0]	fwb_nreqs, fwb_nacks, fwb_outstanding;
+	fwb_slave #(
+		.DW(DW), .AW(AW),
+		.F_LGDEPTH(F_LGDEPTH)
+	) fwb(i_clk, i_reset,
+		i_wb_cyc, i_wb_stb, i_wb_we, i_wb_addr, i_wb_data, i_wb_sel,
+			o_wb_ack, o_wb_stall, o_wb_data, 1'b0,
+		fwb_nreqs, fwb_nacks, fwb_outstanding);
+
+
 	always @(*)
-	if (!i_wb_cyc)
-		assume(!i_wb_stb);
+	if (i_wb_cyc)
+		assert(fwb_outstanding == (o_wb_ack ? 1:0));
 `endif
 
 	////////////////////////////////////////////////////////////////////////
