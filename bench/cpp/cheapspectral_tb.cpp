@@ -306,8 +306,7 @@ int	main(int argc, char **argv) {
 
 		if ((k & 0x3ffff) == 0)
 			printf("  k = %7d\n", k);
-	}
-	tb.m_core->i_data_ce = 0;
+	} tb.m_core->i_data_ce = 0;
 	while(!tb.m_core->o_int)
 		tb.tick();
 
