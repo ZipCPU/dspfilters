@@ -97,13 +97,13 @@ $(HIST)_cvr/PASS: ../../rtl/$(HIST).v $(HIST).sby
 $(SPECTRAL): $(SPECTRAL)_prf/PASS $(SPECTRAL)_cvr/PASS
 $(SPECTRAL): $(SPECTRAL)_prfz/PASS $(SPECTRAL)_prfdbl/PASS
 $(SPECTRAL)_prf/PASS: ../../rtl/$(SPECTRAL).v fwb_slave.v $(SPECTRAL).sby
-	sby -f $(HIST).sby prf
+	sby -f $(SPECTRAL).sby prf
 $(SPECTRAL)_prfz/PASS: ../../rtl/$(SPECTRAL).v fwb_slave.v $(SPECTRAL).sby
-	sby -f $(HIST).sby prfz
+	sby -f $(SPECTRAL).sby prfz
 $(SPECTRAL)_prfdbl/PASS: ../../rtl/$(SPECTRAL).v fwb_slave.v $(SPECTRAL).sby
-	sby -f $(HIST).sby prfdbl
+	sby -f $(SPECTRAL).sby prfdbl
 $(SPECTRAL)_cvr/PASS: ../../rtl/$(SPECTRAL).v fwb_slave.v $(SPECTRAL).sby
-	sby -f $(HIST).sby cvr
+	sby -f $(SPECTRAL).sby cvr
 
 clean:
 	rm -rf  $(LFSR)_*/
