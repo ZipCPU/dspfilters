@@ -8,22 +8,87 @@
 //		signal.  Such an estimate could then be Fourier transformed
 //	to yield a basic spectral estimate of the incoming data.
 //
-//	Algorithm: Given a piece of data,
+// Usage:	To use this core, connect it to a (real) data stream: set
+//		i_data_ce for every new value of the data stream, and i_data
+//	to the actual value.  For those who like AXI stream interfaces,
+//
+//		TVALID = i_data_ce
+//		TREADY = 1 (as written, but will skip correlations to keep up)
+//			The core could be rewritten to create a TREADY output
+//			== !running (internal signal)
+//		TDATA = i_data
+//		T(anything else) would be ignored.
+//
+//	As written, this core cannot handle complex data streams.  Creating an
+//	upgrade to handle complex values wouldn't be that hard, this core just
+//	doesn't handle them.
+//
+//	Set the LGLAGS parameter to the log (based two) of the number of
+//	autocorrelation lags you'd like to estimate.  This will determine your
+//	ultimate frequency resolution in the end.  It also determines the
+//	address width (in words) of the core.
+//
+//	Set the LGNAVG parameter to the log (based two) of the number of
+//	averages you want to make of each lag.  This will help determine the
+//	variance in your autocorrelation estimate, larger values producing
+//	lower variances.  (The core doesn't divide by the number of averages,
+//	so if scale is important you'll still need to do that yourself.
+//	Depending on the input data width and the number of averages, you might
+//	also need to adjust for the scale associated with any dropped bits at
+//	the end.  See bench/test/cheapspectral_tb.cpp and
+//	bench/test/cheapspectral.m for examples of this.)
+//
+//	Set IW to the width (i.e. number of bits) of the incoming data.
+//	Incoming data is assumed to be signed two's complement.
+//
+//	When you want to create a spectral estimate, write to the core.  Any
+//	address will work.  Once the core has completed its estimate, it will
+//	set o_int high for one cycle.  At that point, you can read the
+//	correlations back out of  the core.  They'll be read in the order of
+//	R[-N+1 : 0].  From this, you can create a new vector, 2^N long, of
+//	{ R[0 : N-1], (zero padding), R[N-1:1] } / (1<<LGNAVG).  An FFT of
+//	this vector will yield the spectrum estimate of the incoming data
+//	provided to the core.
+//
+//	An alternate interface uses double buffers.  To use this, set the
+//	OPT_DBLBUFFER parameter.  When using this alternate interface, the
+//	core can estimate one FFT while reporting the results from another.
+//	Once the interrupt wire goes high, the buffers swap and there's new
+//	information to be read.
+//
+//	If you are using the double buffering interface, you can also set the
+//	OPT_AUTO_RESTART parameter.  If set, the core will always and
+//	automatically restart correlation calculations immediately upon the
+//	conclusion of the last calculation.  It makes sense with the double
+//	buffer option, and guarantees that the core always has valid data
+//	containing the most recent autocorrelation result.  What it doesn't
+//	do, however, is guarantee that reads from the core will return
+//	results from the same autocorrelation.  As a result, reads might return
+//	results that ... don't maintain the properties of autocorrelations
+//	when using this option.
+//
+// Algorithm: Given a piece of data,
 //
 //	Clock 1:
 //		- Multiply that data value by 1) itself then 2) every other
-//		  previous data value (within a limit) given to the core, one
-//		  clock at time (Requires new data doesn't come in during this
-//		  time)
-//		- Read the last average value for this result
+//		  previous data value given to the core, up to the number of
+//		  lags 2^LGLAGS the core is configured for, one clock at time
+//		  (Any new data that enters the core during this time will be
+//		  recorded as "previous data", but otherwise ignored for
+//		  spectral purposes.)
+//		- Read the last average value, that is the last estimate of
+//		  R[k], for the current lag
 //	Clock 2:
-//		- Block average this value with the last value
+//		- Add the new product to the last average to create a block
+//		  average.  If this is the first average in the set, then skip
+//		  the addition and just sign extend the product.
 //	Clock 3:
-//		- Write the averaged value back to memory
+//		- Write the updated autocorrelation estimate back to memory
 //
-//	In order to support high speed data, we'll need to support a special
-//	signal to indicate whether or not to examine this piece of data or not.
-//	Such a signal could be randomly generated.
+//	In order to support high speed data on non-stationary signals, it might
+//	make sense to support a special pseudorandom signal to indicate
+//	whether or not to examine a given piece of data or not.  Such random
+//	data selection is not (currently) a part of this implementation.
 //
 // Creator:	Dan Gisselquist, Ph.D.
 //		Gisselquist Technology, LLC
