@@ -1,0 +1,57 @@
+[*]
+[*] GTKWave Analyzer v3.3.86 (w)1999-2017 BSI
+[*]
+[dumpfile_size] 39138
+[timestart] 0
+[size] 1745 600
+[pos] -746 -1
+*-6.124164 180 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[sst_width] 270
+[signals_width] 260
+[sst_expanded] 1
+[sst_vpaned_height] 143
+@28
+cheapspectral.i_reset
+cheapspectral.i_clk
+@200
+-
+@28
+cheapspectral.i_data_ce
+@22
+cheapspectral.i_data[9:0]
+@200
+-
+@800200
+-Wishbone
+@28
+cheapspectral.i_wb_cyc
+cheapspectral.i_wb_stb
+cheapspectral.i_wb_we
+@22
+cheapspectral.i_wb_addr[3:0]
+cheapspectral.i_wb_data[31:0]
+cheapspectral.i_wb_sel[3:0]
+@28
+cheapspectral.o_wb_ack
+@22
+cheapspectral.o_wb_data[31:0]
+@1000200
+-Wishbone
+@28
+cheapspectral.o_int
+@201
+-
+@28
+cheapspectral.start_request
+cheapspectral.check_this
+cheapspectral.clear_memory
+cheapspectral.running
+@22
+cheapspectral.av_read_addr[3:0]
+cheapspectral.av_write_addr[3:0]
+cheapspectral.data_write_address[3:0]
+cheapspectral.delayed_addr[3:0]
+@28
+cheapspectral.avcounts[2:0]
+[pattern_trace] 1
+[pattern_trace] 0

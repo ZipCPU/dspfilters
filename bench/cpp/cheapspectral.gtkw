@@ -1,0 +1,66 @@
+[*]
+[*] GTKWave Analyzer v3.3.86 (w)1999-2017 BSI
+[*]
+[dumpfile_size] 682584783
+[timestart] 20465
+[size] 1918 600
+[pos] -1 -1
+*-4.000000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] TOP.
+[sst_width] 270
+[signals_width] 210
+[sst_expanded] 1
+[sst_vpaned_height] 143
+@28
+TOP.cheapspectral.i_reset
+TOP.cheapspectral.i_clk
+@200
+-
+@28
+TOP.cheapspectral.i_wb_cyc
+TOP.cheapspectral.i_wb_stb
+TOP.cheapspectral.i_wb_we
+@22
+TOP.cheapspectral.i_wb_addr[9:0]
+TOP.cheapspectral.i_wb_data[31:0]
+TOP.cheapspectral.i_wb_sel[3:0]
+@28
+TOP.cheapspectral.o_wb_ack
+TOP.cheapspectral.o_wb_stall
+@22
+TOP.cheapspectral.o_wb_data[31:0]
+@28
+TOP.cheapspectral.o_int
+@200
+-
+@28
+TOP.cheapspectral.i_data_ce
+@22
+TOP.cheapspectral.i_data[9:0]
+@29
+TOP.cheapspectral.check_this
+@200
+-
+@28
+TOP.cheapspectral.running
+@22
+TOP.cheapspectral.av_read_addr[9:0]
+TOP.cheapspectral.avcounts[9:0]
+@200
+-
+@22
+TOP.cheapspectral.new_data[9:0]
+TOP.cheapspectral.delayed_data[9:0]
+@200
+-
+@28
+TOP.cheapspectral.calculate_average
+@22
+TOP.cheapspectral.product[19:0]
+TOP.cheapspectral.last_average[29:0]
+@28
+TOP.cheapspectral.update_memory
+@22
+TOP.cheapspectral.new_average[29:0]
+[pattern_trace] 1
+[pattern_trace] 0

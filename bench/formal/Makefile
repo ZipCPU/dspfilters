@@ -40,7 +40,7 @@
 ################################################################################
 ##
 ##
-TESTS := lfsr lfsr_equiv fastfir histogram # boxcar
+TESTS := lfsr lfsr_equiv fastfir histogram cheapspectral # boxcar
 .PHONY: $(TESTS)
 all: $(TESTS)
 RTL := ../../rtl
@@ -51,6 +51,7 @@ DELAY=delayw
 FFIR=fastfir
 HIST=histogram
 BCAR=boxcar
+SPECTRAL=cheapspectral
 
 SMTBMC  := yosys-smtbmc
 # SOLVER  := -s z3
@@ -90,6 +91,18 @@ $(HIST) : $(HIST)_prf/PASS $(HIST)_cvr/PASS
 $(HIST)_prf/PASS: ../../rtl/$(HIST).v $(HIST).sby
 	sby -f $(HIST).sby prf
 $(HIST)_cvr/PASS: ../../rtl/$(HIST).v $(HIST).sby
+	sby -f $(HIST).sby cvr
+
+.PHONY: $(SPECTRAL)
+$(SPECTRAL): $(SPECTRAL)_prf/PASS $(SPECTRAL)_cvr/PASS
+$(SPECTRAL): $(SPECTRAL)_prfz/PASS $(SPECTRAL)_prfdbl/PASS
+$(SPECTRAL)_prf/PASS: ../../rtl/$(SPECTRAL).v fwb_slave.v $(SPECTRAL).sby
+	sby -f $(HIST).sby prf
+$(SPECTRAL)_prfz/PASS: ../../rtl/$(SPECTRAL).v fwb_slave.v $(SPECTRAL).sby
+	sby -f $(HIST).sby prfz
+$(SPECTRAL)_prfdbl/PASS: ../../rtl/$(SPECTRAL).v fwb_slave.v $(SPECTRAL).sby
+	sby -f $(HIST).sby prfdbl
+$(SPECTRAL)_cvr/PASS: ../../rtl/$(SPECTRAL).v fwb_slave.v $(SPECTRAL).sby
 	sby -f $(HIST).sby cvr
 
 clean:

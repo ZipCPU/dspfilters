@@ -1,0 +1,34 @@
+[tasks]
+prf
+prfz   prf opt_lowpower
+prfdbl prf opt_dblbuffer
+cvr
+
+[options]
+prf: mode prove
+cvr: mode cover
+
+prf: depth 7
+cvr: depth 72
+
+[engines]
+smtbmc boolector
+
+[script]
+read -formal cheapspectral.v
+read -formal fwb_slave.v
+--pycode-begin--
+cmd = "hierarchy -top cheapspectral"
+if ("cvr" in tags):
+	cmd += " -chparam LGLAGS 2"
+if ("cvr" in tags):
+	cmd += " -chparam LGNAVG 3"
+cmd += " -chparam OPT_LOWPOWER  %d" % (1 if "opt_lowpower"  in tags else 0)
+cmd += " -chparam OPT_DBLBUFFER %d" % (1 if "opt_dblbuffer" in tags else 0)
+output(cmd)
+--pycode-end--
+prep -top cheapspectral
+
+[files]
+../../rtl/cheapspectral.v
+fwb_slave.v

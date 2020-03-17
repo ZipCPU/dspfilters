@@ -47,7 +47,7 @@ VDIRFB:= $(FBDIR)/obj_dir
 VERILATOR := verilator
 VFLAGS := -O3 -Wall -MMD -trace -cc
 SUBMAKE := make --no-print-directory -C
-CORES := smplfir iiravg genericfir fastfir boxcar lfsr_gal lfsr_fib delayw lfsr slowfil slowsymf shalfband slowfil_srl subfildown histogram
+CORES := smplfir iiravg genericfir fastfir boxcar lfsr_gal lfsr_fib delayw lfsr slowfil slowsymf shalfband slowfil_srl subfildown histogram cheapspectral
 .PHONY: all $(CORES)
 all: $(CORES) # symfil
 
@@ -67,60 +67,15 @@ lfsr:		$(VDIRFB)/Vlfsr__ALL.a
 delayw:		$(VDIRFB)/Vdelayw__ALL.a
 histogram:	$(VDIRFB)/Vhistogram__ALL.a
 subfildown:	$(VDIRFB)/Vsubfildown__ALL.a
+cheapspectral:	$(VDIRFB)/Vcheapspectral__ALL.a
 
 $(VDIRFB)/V%.cpp $(VDIRFB)/V%.h $(VDIRFB)/V%.mk: $(FBDIR)/%.v
 	$(VERILATOR) $(VFLAGS) $*.v
+$(VDIRFB)/V%.mk: $(FBDIR)/%.v
+	$(VERILATOR) $(VFLAGS) $^
 
-#$(VDIRFB)/V%__ALL.a: $(VDIRFB)/V%.mk
-#	$(SUBMAKE) $(VDIRFB)/ -f $< $(subst $(VDIRFB)/,,$@)
-
-$(VDIRFB)/Vgenericfir__ALL.a: $(VDIRFB)/Vgenericfir.mk
-	$(SUBMAKE) $(VDIRFB)/ -f Vgenericfir.mk Vgenericfir__ALL.a
-
-$(VDIRFB)/Vfastfir__ALL.a: $(VDIRFB)/Vfastfir.mk
-	$(SUBMAKE) $(VDIRFB)/ -f Vfastfir.mk Vfastfir__ALL.a
-
-$(VDIRFB)/Vsymfil__ALL.a: $(VDIRFB)/Vsymfil.mk
-	$(SUBMAKE) $(VDIRFB)/ -f Vsymfil.mk Vsymfil__ALL.a
-
-$(VDIRFB)/Vslowfil__ALL.a: $(VDIRFB)/Vslowfil.mk
-	$(SUBMAKE) $(VDIRFB)/ -f Vslowfil.mk Vslowfil__ALL.a
-
-$(VDIRFB)/Vslowfil_srl__ALL.a: $(VDIRFB)/Vslowfil_srl.mk
-	$(SUBMAKE) $(VDIRFB)/ -f Vslowfil_srl.mk Vslowfil_srl__ALL.a
-
-$(VDIRFB)/Vslowsymf__ALL.a: $(VDIRFB)/Vslowsymf.mk
-	$(SUBMAKE) $(VDIRFB)/ -f Vslowsymf.mk Vslowsymf__ALL.a
-
-$(VDIRFB)/Vshalfband__ALL.a: $(VDIRFB)/Vshalfband.mk
-	$(SUBMAKE) $(VDIRFB)/ -f Vshalfband.mk Vshalfband__ALL.a
-
-$(VDIRFB)/Viiravg__ALL.a: $(VDIRFB)/Viiravg.mk
-	$(SUBMAKE) $(VDIRFB)/ -f Viiravg.mk Viiravg__ALL.a
-
-$(VDIRFB)/Vsmplfir__ALL.a: $(VDIRFB)/Vsmplfir.mk
-	$(SUBMAKE) $(VDIRFB)/ -f Vsmplfir.mk Vsmplfir__ALL.a
-
-$(VDIRFB)/Vboxcar__ALL.a: $(VDIRFB)/Vboxcar.mk
-	$(SUBMAKE) $(VDIRFB)/ -f Vboxcar.mk Vboxcar__ALL.a
-
-$(VDIRFB)/Vlfsr_gal__ALL.a: $(VDIRFB)/Vlfsr_gal.mk
-	$(SUBMAKE) $(VDIRFB)/ -f Vlfsr_gal.mk Vlfsr_gal__ALL.a
-
-$(VDIRFB)/Vlfsr_fib__ALL.a: $(VDIRFB)/Vlfsr_fib.mk
-	$(SUBMAKE) $(VDIRFB)/ -f Vlfsr_fib.mk Vlfsr_fib__ALL.a
-
-$(VDIRFB)/Vlfsr__ALL.a: $(VDIRFB)/Vlfsr.mk
-	$(SUBMAKE) $(VDIRFB)/ -f Vlfsr.mk Vlfsr__ALL.a
-
-$(VDIRFB)/Vdelayw__ALL.a: $(VDIRFB)/Vdelayw.mk
-	$(SUBMAKE) $(VDIRFB)/ -f Vdelayw.mk Vdelayw__ALL.a
-
-$(VDIRFB)/Vsubfildown__ALL.a: $(VDIRFB)/Vsubfildown.mk
-	$(SUBMAKE) $(VDIRFB)/ -f Vsubfildown.mk Vsubfildown__ALL.a
-
-$(VDIRFB)/Vhistogram__ALL.a: $(VDIRFB)/Vhistogram.mk
-	$(SUBMAKE) $(VDIRFB)/ -f Vhistogram.mk Vhistogram__ALL.a
+$(VDIRFB)/V%__ALL.a: $(VDIRFB)/V%.mk
+	$(SUBMAKE) $(VDIRFB)/ -f V$*.mk V$*__ALL.a
 
 .PHONY: clean
 clean:

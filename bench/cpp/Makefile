@@ -13,7 +13,7 @@
 ##
 ################################################################################
 ##
-## Copyright (C) 2017-2019, Gisselquist Technology, LLC
+## Copyright (C) 2017-2020, Gisselquist Technology, LLC
 ##
 ## This file is part of the DSP filtering set of designs.
 ##
@@ -52,7 +52,7 @@ export  $(VERILATOR)
 VROOT  := $(VERILATOR_ROOT)
 VDEFS  := $(shell ./vversion.sh)
 INCS	:= -I$(RTLD)/obj_dir/ -I$(VROOT)/include -I../rtl/obj_dir
-PROGRAMS := slowsymf_tb genericfir_tb fastfir_tb boxcar_tb lfsr_gal_tb lfsr_fib_tb delayw_tb slowfil_tb shalfband_tb lfsr_tb slowfil_srl_tb subfildown_tb # symfil_tb
+PROGRAMS := slowsymf_tb genericfir_tb fastfir_tb boxcar_tb lfsr_gal_tb lfsr_fib_tb delayw_tb slowfil_tb shalfband_tb lfsr_tb slowfil_srl_tb subfildown_tb cheapspectral_tb # symfil_tb
 SOURCES := $(addsuffix .cpp,$(PROGRAMS)) filtertb.cpp downsampletb.cpp
 VOBJDR	:= $(RTLD)/obj_dir
 SYSVDR	:= $(VROOT)/include
@@ -106,6 +106,9 @@ delayw_tb: $(OBJDIR)/delayw_tb.o $(VLIB) $(VOBJDR)/Vdelayw__ALL.a
 	$(CXX) $(CFLAGS) $(INCS) $^ -o $@
 
 subfildown_tb: $(OBJDIR)/subfildown_tb.o $(VLIB) $(VOBJDR)/Vsubfildown__ALL.a
+	$(CXX) $(FLAGS) $(INCS) $^ -o $@
+
+cheapspectral_tb: $(OBJDIR)/cheapspectral_tb.o $(VLIB) $(VOBJDR)/Vcheapspectral__ALL.a
 	$(CXX) $(FLAGS) $(INCS) $^ -o $@
 
 #
