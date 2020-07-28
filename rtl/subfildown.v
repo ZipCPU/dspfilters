@@ -95,50 +95,60 @@
 `default_nettype	none
 //
 //
-module	subfildown(i_clk, i_reset, i_tap_wr, i_tap,
-		i_ce, i_sample, o_ce, o_result);
-	//
-	// Bit widths: input width (IW), output bit-width (OW), and coefficient
-	//	bit-width (CW)
-	parameter	IW=16,OW=24,CW=12;
-	//
-	// Downsample rate, NDOWN.  For every NDOWN incoming samples, this core
-	// will produce one outgoing sample.
-	parameter	NDOWN=5;
-	// LGNDOWN is the number of bits necessary to represent a counter
-	//	holding values between 0 and NDOWN-1
-	localparam	LGNDOWN=$clog2(NDOWN);
-	//
-	// If "FIXED_COEFFS" is set to one, the logic necessary to update
-	// coefficients will be removed to save space.  If you know the
-	// coefficients you need, you can set this for that purpose.
-	parameter [0:0]	FIXED_COEFFS = 1'b0;
-	//
-	// LGNCOEFFS is the log (based two) of the number of coefficients
-	// So, for LGNCOEFFS=10, a 2^10 = 1024 tap filter will be implemented.
-	parameter	NCOEFFS=103;
-	parameter	LGNCOEFFS=$clog2(NCOEFFS);
-	//
-	// For fixed coefficients, if INITIAL_COEFFS != 0 (i.e. ""), then
-	// the filter's coefficients will be initialized from the filename
-	// given.
-	parameter	INITIAL_COEFFS = "";
-	//
-	parameter	SHIFT=2;
-	localparam	AW = IW+CW+LGNCOEFFS;
+module	subfildown #(
+		// {{{
+		//
+		// Bit widths: input width (IW),
+		parameter	IW = 16,
+		// output bit-width (OW),
+				OW = 24,
+		// and coefficient bit-width (CW)
+				CW = 12,
+		//
+		// Downsample rate, NDOWN.  For every NDOWN incoming samples,
+		// this core will produce one outgoing sample.
+		parameter	NDOWN=5,
+		// LGNDOWN is the number of bits necessary to represent a
+		// counter holding values between 0 and NDOWN-1
+		localparam	LGNDOWN=$clog2(NDOWN),
+		//
+		// If "FIXED_COEFFS" is set to one, the logic necessary to
+		// update coefficients will be removed to save space.  If you
+		// know the coefficients you need, you can set this for that
+		// purpose.
+		parameter [0:0]	FIXED_COEFFS = 1'b0,
+		//
+		// LGNCOEFFS is the log (based two) of the number of
+		// coefficients.  So, for LGNCOEFFS=10, a 2^10 = 1024 tap
+		// filter will be implemented.
+		parameter	NCOEFFS=103,
+		localparam	LGNCOEFFS=$clog2(NCOEFFS),
+		//
+		// For fixed coefficients, if INITIAL_COEFFS != 0 (i.e. ""),
+		// then the filter's coefficients will be initialized from the
+		// filename given.
+		parameter	INITIAL_COEFFS = "",
+		//
+		parameter	SHIFT=2,
+		localparam	AW = IW+CW+LGNCOEFFS
+		// }}}
+	) (
+		// {{{
+		input	wire		i_clk, i_reset,
+		//
+		input	wire		i_tap_wr,
+		input	wire [(CW-1):0]	i_tap,
+		//
+		input	wire		i_ce,
+		input	wire [(IW-1):0]	i_sample,
+		//
+		output	reg		o_ce,
+		output	reg [(OW-1):0]	o_result
+		// }}}
+	);
 
-	input	wire		i_clk, i_reset;
-	//
-	input	wire		i_tap_wr;
-	input	wire [(CW-1):0]	i_tap;
-	//
-	input	wire		i_ce;
-	input	wire [(IW-1):0]	i_sample;
-	//
-	output	reg		o_ce;
-	output	reg [(OW-1):0]	o_result;
-
-
+	// Declare registers, nets, and memories
+	// {{{
 	reg	[(CW-1):0]	cmem	[0:((1<<LGNCOEFFS)-1)];
 	reg	[(IW-1):0]	dmem	[0:((1<<LGNCOEFFS)-1)];
 	//
@@ -149,37 +159,47 @@ module	subfildown(i_clk, i_reset, i_tap_wr, i_tap,
 	reg	[LGNCOEFFS-1:0]	didx, tidx;
 	reg			running, last_coeff;
 	//
-	reg				d_ce;
+	reg				d_ce, d_last;
 	reg	signed	[IW-1:0]	dval;
 	reg	signed	[CW-1:0]	cval;
 	//
-	reg	p_run, p_ce;
+	reg				p_run, p_ce, p_last;
 	//
 	reg	signed [IW+CW-1:0]	product;
 	//
+	reg			acc_valid;
 	reg	[AW-1:0]	accumulator;
 	//
+	wire			sgn, overflow;
 	wire	[AW-1:0]	rounded_result;
+	// }}}
 
-
-	///////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////
 	//
 	// Adjust the coefficients for our filter
-	//
-	///////////////////////////////////////////////
+	// {{{
+	////////////////////////////////////////////////////////////////////////
 	//
 	// Generate the decimator via: genfil 1024 decimator 23 0.45
 	//
-	generate if (FIXED_COEFFS)
+	generate if (FIXED_COEFFS || INITIAL_COEFFS != 0)
 	begin : LOAD_INITIAL_COEFFS
+
 		initial $readmemh(INITIAL_COEFFS, cmem);
 
+	end endgenerate
+
+	generate if (FIXED_COEFFS)
+	begin : UNUSED_LOADING_PORTS
+		// {{{
 		// Make Verilator's -Wall happy
 		// verilator lint_off UNUSED
 		wire	ignored_inputs;
 		assign	ignored_inputs = &{ 1'b0, i_tap_wr, i_tap };
 		// verilator lint_on  UNUSED
+		// }}}
 	end else begin : LOAD_COEFFICIENTS
+		// {{{
 		// Coeff memory write index
 		reg	[LGNCOEFFS-1:0]	wr_coeff_index;
 
@@ -190,21 +210,18 @@ module	subfildown(i_clk, i_reset, i_tap_wr, i_tap,
 		else if (i_tap_wr)
 			wr_coeff_index <= wr_coeff_index+1'b1;
 
-		if (INITIAL_COEFFS != 0)
-			initial $readmemh(INITIAL_COEFFS, cmem);
-
 		always @(posedge i_clk)
 		if (i_tap_wr)
 			cmem[wr_coeff_index] <= i_tap;
-
+		// }}}
 	end endgenerate
-
-	///////////////////////////////////////////////
+	// }}}
+	////////////////////////////////////////////////////////////////////////
 	//
 	// Write data logic
+	// {{{
+	////////////////////////////////////////////////////////////////////////
 	//
-	///////////////////////////////////////////////
-
 	initial	wraddr    = 0;
 	always @(posedge i_clk)
 	if (i_ce)
@@ -213,14 +230,15 @@ module	subfildown(i_clk, i_reset, i_tap_wr, i_tap,
 	always @(posedge i_clk)
 	if (i_ce)
 		dmem[wraddr] <= i_sample;
-
-	///////////////////////////////////////////////
+	// }}}
+	////////////////////////////////////////////////////////////////////////
 	//
 	// Decimation logic
+	// {{{
+	////////////////////////////////////////////////////////////////////////
 	//
-	///////////////////////////////////////////////
 
-	initial	countdown = NDOWN-1;
+	initial	countdown = NDOWN[LGNDOWN-1:0]-1;
 	initial	first_sample = 1;
 	always @(posedge i_clk)
 	if (i_ce)
@@ -228,14 +246,14 @@ module	subfildown(i_clk, i_reset, i_tap_wr, i_tap,
 		countdown <= countdown - 1;
 		first_sample <= (countdown == 0);
 		if (countdown == 0)
-			countdown <= NDOWN-1;
+			countdown <= NDOWN[LGNDOWN-1:0]-1;
 	end
 
-
+	// }}}
 	///////////////////////////////////////////////
 	//
 	// Memory read index logic
-	//
+	// {{{
 	///////////////////////////////////////////////
 
 	initial	last_coeff = 0;
@@ -261,10 +279,7 @@ module	subfildown(i_clk, i_reset, i_tap_wr, i_tap,
 				running <= 1'b1;
 		end
 	end
-`ifdef	FORMAL
-	always @(*)
-		assert(last_coeff == (tidx >= NCOEFFS-1));
-`endif
+
 	initial	didx = 0;
 	always @(posedge i_clk)
 	if (!running || last_coeff)
@@ -274,12 +289,14 @@ module	subfildown(i_clk, i_reset, i_tap_wr, i_tap,
 		// Always read from oldest first, that way we can rewrite
 		// the data as new data comes in--since we've already used it.
 		didx <= didx + 1'b1;
-
-	///////////////////////////////////////////////
+	// }}}
+	////////////////////////////////////////////////////////////////////////
 	//
 	// Memory read(s)
+	// {{{
+	////////////////////////////////////////////////////////////////////////
 	//
-	///////////////////////////////////////////////
+	//
 
 	always @(posedge i_clk)
 	begin
@@ -291,27 +308,35 @@ module	subfildown(i_clk, i_reset, i_tap_wr, i_tap,
 	initial	d_ce  = 0;
 	initial	p_run = 0;
 	initial	p_ce  = 0;
+	initial	d_last= 0;
+	initial	p_last= 0;
 	always @(posedge i_clk)
 	if (i_reset)
 	begin
-		p_run <= 0;
-		p_ce  <= 0;
 		d_ce  <= 0;
+		p_ce  <= 0;
+		p_run <= 0;
+		d_last  <= 0;
+		p_last  <= 0;
 	end else begin
 		// d_ce is true when the first memory read of data is valid
 		d_ce  <= (first_sample)&&(i_ce);
+		d_last<= last_coeff && p_run;
+		p_last<= p_run && d_last;
 		//
 		//
-		p_run <= (tidx != 0)&&(p_run || p_ce);
+		p_run <= !p_last && (p_run || p_ce);
 		// p_ce is true when the first product is valid
 		p_ce  <= d_ce;
 	end
-
-	///////////////////////////////////////////////
+	// }}}
+	////////////////////////////////////////////////////////////////////////
 	//
 	// Product
+	// {{{
+	////////////////////////////////////////////////////////////////////////
 	//
-	///////////////////////////////////////////////
+	//
 
 `ifdef	FORMAL
 	(* anyseq *)	reg	signed [IW+CW-1:0]	f_abstract_product;
@@ -330,25 +355,23 @@ module	subfildown(i_clk, i_reset, i_tap_wr, i_tap,
 	always @(posedge i_clk)
 		product <= f_abstract_product;
 `else
+	(* mul2dsp *)
 	always @(posedge i_clk)
 		product <= dval * cval;
 `endif
-
-	///////////////////////////////////////////////
+	// }}}
+	////////////////////////////////////////////////////////////////////////
 	//
 	// Accumulator
-	//
-	///////////////////////////////////////////////
+	// {{{
+	////////////////////////////////////////////////////////////////////////
 
-	reg	acc_valid;
 	initial	acc_valid = 0;
 	always @(posedge i_clk)
 	if (i_reset)
 		acc_valid <= 0;
 	else if (p_run || p_ce)
 		acc_valid <= 1;
-	else if (o_ce)
-		acc_valid <= 0;
 
 	initial	accumulator = 0;
 	always @(posedge i_clk)
@@ -360,37 +383,55 @@ module	subfildown(i_clk, i_reset, i_tap_wr, i_tap,
 	else if (p_run)
 		accumulator <= accumulator
 			+ { {(LGNCOEFFS){product[IW+CW-1]}}, product };
-	else if (!acc_valid)
-		accumulator <= 0;
-
-
-	///////////////////////////////////////////////
+	// }}}
+	////////////////////////////////////////////////////////////////////////
 	//
 	// Round the result to the right number of bits
+	// {{{
+	////////////////////////////////////////////////////////////////////////
 	//
-	///////////////////////////////////////////////
+	//
 
 	generate if (OW == AW-SHIFT)
 	begin : NO_SHIFT
+		assign	sgn = accumulator[AW-1];
 		assign	rounded_result = accumulator[AW-SHIFT-1:AW-SHIFT-OW];
+		assign	overflow  = sgn  != rounded_result[AW-1];
 	end else if (AW-SHIFT > OW)
 	begin : SHIFT_OUTPUT
 		wire	[AW-1:0]	prerounded = {accumulator[AW-SHIFT-1:0],
 						{(SHIFT){1'b0}} };
+
+		assign	sgn = accumulator[AW-1];
 		assign	rounded_result = prerounded
 				+ { {(OW){1'b0}}, prerounded[AW-OW-1],
-					{(AW-OW-1){!prerounded[AW-OW-1]}}};
+					{(AW-OW-1){!prerounded[AW-OW-1]}} };
+		assign	overflow = (sgn && !prerounded[AW-1]) || (!sgn && rounded_result[AW-1]);
 	end else begin : UNIMPLEMENTED_SHIFT
 	end endgenerate
+	// }}}
+	////////////////////////////////////////////////////////////////////////
+	//
+	// Return the results
+	// {{{
+	////////////////////////////////////////////////////////////////////////
+	//
+	//
+
 
 	initial	o_ce = 1'b0;
 	always @(posedge i_clk)
+		o_ce <= !i_reset && p_ce && (acc_valid);
+
+	always @(posedge i_clk)
 	if (p_ce)
 	begin
-		o_ce <= (!i_reset)&&(acc_valid);
-		o_result <= rounded_result[AW-1:AW-OW];
-	end else
-		o_ce <= 1'b0;
+		if (overflow)
+			o_result <= (sgn) ? { 1'b1, {(OW-1){1'b0}} }
+					: { 1'b0, {(OW-1){1'b1}} };
+		else
+			o_result <= rounded_result[AW-1:AW-OW];
+	end
 
 	//
 	// If we were to use a ready signal in addition to our i_ce (i.e. valid)
@@ -400,16 +441,25 @@ module	subfildown(i_clk, i_reset, i_tap_wr, i_tap,
 	//	assign	i_ce    = i_valid && o_ready
 	//
 	//
+	// }}}
 
 	// Make Verilator happy
+	// {{{
 	// verilator lint_off UNUSED
 	wire	unused;
 	assign	unused = &{ 1'b0, rounded_result[AW-OW-1:0] };
 	// verilator lint_on  UNUSED
+	// }}}
 
-// `ifdef	VERILATOR
-// `define	FORMAL
-// `endif
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+//
+// Formal properties, used in a partial formal verification proof
+// {{{
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 `ifdef	FORMAL
 	reg			f_past_valid;
 	reg	[LGNCOEFFS-1:0]	f_start_index, f_written, f_dindex;
@@ -419,11 +469,38 @@ module	subfildown(i_clk, i_reset, i_tap_wr, i_tap,
 	always @(posedge i_clk)
 		f_past_valid <= 1;
 
+	////////////////////////////////////////////////////////////////////////
+	//
+	// Input assertions--no inputs are allowed until we are ready for them
+	// {{{
+	////////////////////////////////////////////////////////////////////////
+	//
+	//
+
+	//
+	// Once NDOWN samples have been written, we need to wait for the
+	// processing to stop before writing any more.  This is to keep us from
+	// overwriting data that we'll need in our next run.
+	always @(*)
+	if (running)
+		assume(!i_ce || !first_sample);
+
+	// }}}
+	////////////////////////////////////////////////////////////////////////
+	//
+	// Ad-hoc assertions
+	// {{{
+	////////////////////////////////////////////////////////////////////////
+	//
+	//
+
 	// Constrain the decimator
 	always @(*)
 		assert(countdown <= NDOWN-1);
 	always @(*)
 		assert(first_sample == (countdown == NDOWN-1));
+	always @(*)
+		assert(last_coeff == (tidx >= NCOEFFS-1));
 
 	//
 	// The processing section starts with a write to wraddr.  After that,
@@ -456,14 +533,6 @@ module	subfildown(i_clk, i_reset, i_tap_wr, i_tap,
 	if (!first_sample)
 		assert(countdown == (NDOWN-1-f_written));
 	// Verilator lint_on WIDTH
-
-	//
-	// Once NDOWN samples have been written, we need to wait for the
-	// processing to stop before writing any more.  This is to keep us from
-	// overwriting data that we'll need in our next run.
-	always @(*)
-	if (running)
-		assume(!i_ce || !first_sample);
 
 	always @(*)
 		assert(f_written <= NDOWN);
@@ -505,31 +574,50 @@ module	subfildown(i_clk, i_reset, i_tap_wr, i_tap,
 
 	// Constrain our internal chip selects
 	always @(*)
+	if (tidx != 0)
+		assert(!d_last);
+
+	always @(*)
+	if (tidx == 0)
+		assert(!p_run || d_last || p_last);
+
+	always @(*)
 	if (tidx != 1)
 		assert(!d_ce);
+
+	always @(posedge i_clk)
+	if (f_past_valid && $past(tidx != 0))
+		assert(!p_last);
+
+	always @(*)
+	if (!p_run)
+		assert(!p_last);
 
 	always @(*)
 	if (tidx != 2)
 		assert(!p_ce);
 
 	always @(*)
-	if (d_ce || p_ce)
+	if (p_ce)
 		assert(!p_run);
 
 	always @(*)
 	if (tidx != 3)
 		assert(!o_ce);
 
+	always @(*)
+		assert(!p_ce || !p_run);
+
 `ifndef	VERILATOR
 	// Constrain the output
 	always @(posedge i_clk)
 	if (f_past_valid && !$past(p_ce))
 		assert($stable(o_result));
-
+	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//
 	// Cover check(s)
-	//
+	// {{{
 	////////////////////////////////////////////////////////////////////////
 	//
 	always @(*)
@@ -559,7 +647,8 @@ module	subfildown(i_clk, i_reset, i_tap_wr, i_tap,
 
 	always @(*)
 		cover(cvr_seq[3]);
-
+	// }}}
 `endif // VERILATOR
 `endif // FORMAL
+// }}}
 endmodule
