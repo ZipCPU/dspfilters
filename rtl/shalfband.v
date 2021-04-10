@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
 // Filename: 	shalfband.v
-//
+// {{{
 // Project:	DSP Filtering Example Project
 //
 // Purpose:	
@@ -10,9 +10,9 @@
 //		Gisselquist Technology, LLC
 //
 ////////////////////////////////////////////////////////////////////////////////
-//
-// Copyright (C) 2018-2020, Gisselquist Technology, LLC
-//
+// }}}
+// Copyright (C) 2018-2021, Gisselquist Technology, LLC
+// {{{
 // This file is part of the DSP filtering set of designs.
 //
 // The DSP filtering designs are free RTL designs: you can redistribute them
@@ -29,68 +29,70 @@
 // along with these designs.  (It's in the $(ROOT)/doc directory.  Run make
 // with no target there if the PDF file isn't present.)  If not, see
 // <http://www.gnu.org/licenses/> for a copy.
-//
+// }}}
 // License:	LGPL, v3, as defined and found on www.gnu.org,
+// {{{
 //		http://www.gnu.org/licenses/lgpl.html
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
 //
 `default_nettype	none
-//
-module	shalfband(i_clk, i_reset, i_tap_wr, i_tap, i_ce, i_sample, o_ce, o_result);
-	parameter			LGNTAPS = 7, IW=16, TW=12,
-					OW = IW+TW+LGNTAPS;
-	parameter	[LGNTAPS:0]	NTAPS = 107;
-	parameter	[0:0]		FIXED_TAPS = 1'b0;
-	parameter			INITIAL_COEFFS  = "";
-	parameter	[0:0]		OPT_HILBERT = 1'b0;
-	// // //
-	localparam			LGNMEM   = LGNTAPS-1,
-					LGNCOEF  = LGNMEM-1;
-	localparam	[LGNTAPS-1:0]	HALFTAPS = NTAPS[LGNTAPS:1];
-	localparam	[LGNTAPS-2:0]	QTRTAPS = HALFTAPS[LGNTAPS-1:1]+1;
-	localparam			DMEMSZ = (1<<LGNMEM);
-	localparam			CMEMSZ = (1<<LGNCOEF);
-
+// }}}
+module	shalfband #(
+		// {{{
+		parameter			LGNTAPS = 7, IW=16, TW=12,
+						OW = IW+TW+LGNTAPS,
+		parameter	[LGNTAPS:0]	NTAPS = 107,
+		parameter	[0:0]		FIXED_TAPS = 1'b0,
+		parameter			INITIAL_COEFFS  = "",
+		parameter	[0:0]		OPT_HILBERT = 1'b0,
+		//
+		localparam			LGNMEM   = LGNTAPS-1,
+						LGNCOEF  = LGNMEM-1,
+		localparam	[LGNTAPS-1:0]	HALFTAPS = NTAPS[LGNTAPS:1],
+		localparam	[LGNTAPS-2:0]	QTRTAPS=HALFTAPS[LGNTAPS-1:1]+1,
+		localparam			DMEMSZ = (1<<LGNMEM),
+		localparam			CMEMSZ = (1<<LGNCOEF)
 /*
 initial assert(NTAPS[2:0] == 3'h7);
-*/
-
-/*
 always @(*)
 	assert(NTAPS[2:0] == 3'h7);
-*/
-
-/*
 always @(posedge i_clk)
 	assert(NTAPS[2:0] == 3'h7);
 */
+		// }}}
+	) (
+		// {{{
+		// Control inputs (wires)
+		input	wire		i_clk, i_reset,
+		//
+		// Coefficient control -- allows you to update coefficients in
+		// {{{
+		// the filter
+		input	wire			i_tap_wr,
+		input	wire	[(TW-1):0]	i_tap,
+		// }}}
+		//
+		// New sample input(s)--a new sample comes in any time i_ce is
+		// {{{
+		// true.  There must be at least NTAPS idle's between every
+		// pair of valid i_ce's.
+		input	wire			i_ce,
+		input	wire	[(IW-1):0]	i_sample,
+		// }}}
+		// The output--valid any time o_ce is true.  Since it only
+		// {{{
+		// changes once per interval, you can ignore the o_ce line if
+		// you choose and just use i_ce.
+		output	reg			o_ce,
+		output	reg	[(OW-1):0]	o_result
+		// }}}
+		// }}}
+	);
 
-
-	//
-	// Control inputs (wires)
-	input	wire		i_clk, i_reset;
-	//
-	// Coefficient control -- allows you to update coefficients in the
-	// filter
-	input	wire			i_tap_wr;
-	input	wire	[(TW-1):0]	i_tap;
-	//
-	// New sample input(s)--a new sample comes in any time i_ce is true.
-	// There must be at least NTAPS idle's between every pair of valid
-	// i_ce's.
-	input	wire			i_ce;
-	input	wire	[(IW-1):0]	i_sample;
-	//
-	// The output--valid any time o_ce is true.  Since it only changes
-	// once per interval, you can ignore the o_ce line if you choose and
-	// just use i_ce.
-	output	reg			o_ce;
-	output	reg	[(OW-1):0]	o_result;
-	//
-	//
-
+	// Local declarations
+	// {{{
 	reg	[(TW-1):0]	tapmem	[0:(CMEMSZ-1)];	// Coef memory
 	reg signed [(TW-1):0]	tap;		// Value read from coef memory
 
@@ -109,9 +111,16 @@ always @(posedge i_clk)
 	reg	signed [(IW+TW-1):0]	product;
 	reg	signed [(OW-1):0]	r_acc;
 
-	//
+	wire			last_tap_index, last_data_index;
+	wire	[LGNTAPS-2:0]	taps_left;
+	reg	[3:0]	pre_acc_ce;
+	wire	[OW-1:0]	midprod;
+	// }}}
+	////////////////////////////////////////////////////////////////////////
 	//
 	// Allow the user to set the taps
+	// {{{
+	////////////////////////////////////////////////////////////////////////
 	//
 	//
 
@@ -144,11 +153,12 @@ always @(posedge i_clk)
 			if (i_tap_wr)
 				tapmem[tapwidx] <= i_tap;
 	end endgenerate
-
-
-	//
+	// }}}
+	////////////////////////////////////////////////////////////////////////
 	//
 	// Record the incoming data into a local memory
+	// {{{
+	////////////////////////////////////////////////////////////////////////
 	//
 	//
 
@@ -169,26 +179,27 @@ always @(posedge i_clk)
 		mid_sample <= 0;
 	else if (i_ce)
 		mid_sample <= dleft;
-
-
-	//
+	// }}}
+	////////////////////////////////////////////////////////////////////////
 	//
 	// Calculate the indexes of the filter table
+	// {{{
+	////////////////////////////////////////////////////////////////////////
 	//
 	//
 
 	// Determine if the next clock (not this one) will contain the last
 	// valid index, and so whether or not we need to stop.
-	wire			last_tap_index, last_data_index;
-	wire	[LGNTAPS-2:0]	taps_left;
 
 	assign	taps_left = (QTRTAPS-tidx);
 	assign	last_tap_index = (taps_left <= 1);
 	assign	last_data_index= (QTRTAPS-tidx <= 2);
+
+	// pre_acc_ce
+	// {{{
 	// The pre_acc_ce traveling CE values keep track of when the
 	// results of reading memory are valid at the accumulation section
 	// of this code later on.
-	reg	[3:0]	pre_acc_ce;
 	initial	pre_acc_ce = 4'h0;
 	always @(posedge i_clk)
 	if (i_reset)
@@ -210,7 +221,10 @@ always @(posedge i_clk)
 	else
 		pre_acc_ce[3:1] <= { pre_acc_ce[2:1],
 			((m_ce)||((pre_acc_ce[0])&&(!last_tap_index))) };
+	// }}}
 
+	// lidx, ridx
+	// {{{
 	initial	lidx = 0;
 	initial	ridx = 0;
 	always @(posedge i_clk)
@@ -227,8 +241,10 @@ always @(posedge i_clk)
 		lidx <= lidx - 2;
 		ridx <= ridx + 2;
 	end
+	// }}}
 
-
+	// tidx
+	// {{{
 	initial	tidx = 0;
 	always @(posedge i_clk)
 	if (i_reset)
@@ -237,19 +253,26 @@ always @(posedge i_clk)
 		tidx <= 0;
 	else if (!last_tap_index)
 		tidx <= tidx + 1'b1;
-
-	//
+	// }}}
+	// }}}
+	////////////////////////////////////////////////////////////////////////
 	//
 	// Read from memory cycle
+	// {{{
+	////////////////////////////////////////////////////////////////////////
 	//
 	//
 
 	//
 	// m_ce is the memory strobe.  It is true when the first index is valid
+	// {{{
 	initial	m_ce = 1'b0;
 	always @(posedge i_clk)
 		m_ce <= (i_ce)&&(!i_reset);
+	// }}}
 
+	// dleft, dright
+	// {{{
 	initial	dleft  = 0;
 	initial	dright = 0;
 	always @(posedge i_clk)
@@ -259,19 +282,30 @@ always @(posedge i_clk)
 		dleft  <= dmem1[lidx];
 		dright <= dmem2[ridx];
 	end
+	// }}}
 
+	// }}}
+	////////////////////////////////////////////////////////////////////////
 	//
 	// Summation cycle, and read coefficient from memory
+	// {{{
+	////////////////////////////////////////////////////////////////////////
 	//
+	//
+
 	// d_ce is valid when the first data from memory is read/valid
+	// {{{
 	initial	d_ce = 0;
 	always @(posedge i_clk)
 		d_ce <= (m_ce)&&(!i_reset);
+	// }}}
 
 	initial	tap = 0;
 	always @(posedge i_clk)
 		tap <= tapmem[tidx[(LGNCOEF-1):0]];
 
+	// dsum
+	// {{{
 	initial	dsum = 0;
 	always @(posedge i_clk)
 	if (i_reset)
@@ -280,30 +314,57 @@ always @(posedge i_clk)
 		dsum   <= dleft - dright;
 	else
 		dsum   <= dleft + dright;
+	// }}}
 
 	// s_ce is valid when the first data sum is valid
+	// {{{
 	initial	s_ce = 0;
 	always @(posedge i_clk)
 		s_ce <= (d_ce)&&(!i_reset);
-
+	// }}}
+	// }}}
+	////////////////////////////////////////////////////////////////////////
 	//
 	// Apply the product to the tap and data just read
+	// {{{
+	////////////////////////////////////////////////////////////////////////
+	//
 	//
 
+	// product
+	// {{{
 	initial	product = 0;
 	always @(posedge i_clk)
 		product <= tap * dsum;
+	// }}}
 
-	reg	[OW-1:0]	midprod;
-	initial	midprod = 0;
-	always @(posedge i_clk)
-	if (i_reset)
-		midprod <= 0;
-	else if (m_ce)
-		midprod <= { {(OW-IW-TW+1){mid_sample[IW-1]}},
-					mid_sample, {(TW-1){1'b0}}}
+	// midprod
+	// {{{
+	generate if (OPT_HILBERT)
+	begin
+		// {{{
+		assign midprod = 0;
+		// }}}
+	end else begin
+		// {{{
+		reg	[OW-1:0]	r_midprod;
+
+		initial	r_midprod = 0;
+		always @(posedge i_clk)
+		if (i_reset)
+			r_midprod <= 0;
+		else if (m_ce)
+			r_midprod <= { {(OW-IW-TW+1){mid_sample[IW-1]}},
+					mid_sample, {(TW-1){1'b0}} }
 				- {{(OW-IW){mid_sample[IW-1]}}, mid_sample};
 
+		assign	midprod = r_midprod;
+		// }}}
+	end endgenerate
+	// }}}
+
+	// r_acc
+	// {{{
 	initial	r_acc = 0;
 	always @(posedge i_clk)
 	if (i_reset)
@@ -313,19 +374,30 @@ always @(posedge i_clk)
 	else if (pre_acc_ce[3])
 		r_acc <= r_acc + { {(OW-(IW+TW)){product[(IW+TW-1)]}},
 						product };
-
-	//
+	// }}}
+	// }}}
+	////////////////////////////////////////////////////////////////////////
 	//
 	// Copy the result to the output
+	// {{{
+	////////////////////////////////////////////////////////////////////////
 	//
 	//
+
+	// o_result
+	// {{{
 	initial	o_result = 0;
 	always @(posedge i_clk)
-		if (s_ce)
-			o_result <= r_acc;
+	if (s_ce)
+		o_result <= r_acc;
+	// }}}
 
+	// o_ce
+	// {{{
 	initial	o_ce = 1'b0;
 	always @(posedge i_clk)
 		o_ce <= (s_ce)&&(!i_reset);
+	// }}}
 
+	// }}}
 endmodule
