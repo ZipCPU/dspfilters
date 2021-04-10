@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
 // Filename: 	iiravg.v
-//
+// {{{
 // Project:	DSP Filtering Example Project
 //
 // Purpose:	Implements a simple recursive filter.
@@ -10,9 +10,9 @@
 //		Gisselquist Technology, LLC
 //
 ////////////////////////////////////////////////////////////////////////////////
-//
-// Copyright (C) 2017-2020, Gisselquist Technology, LLC
-//
+// }}}
+// Copyright (C) 2017-2021, Gisselquist Technology, LLC
+// {{{
 // This file is part of the DSP filtering set of designs.
 //
 // The DSP filtering designs are free RTL designs: you can redistribute them
@@ -29,26 +29,37 @@
 // along with these designs.  (It's in the $(ROOT)/doc directory.  Run make
 // with no target there if the PDF file isn't present.)  If not, see
 // <http://www.gnu.org/licenses/> for a copy.
-//
+// }}}
 // License:	LGPL, v3, as defined and found on www.gnu.org,
+// {{{
 //		http://www.gnu.org/licenses/lgpl.html
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
 //
 `default_nettype	none
-//
-module	iiravg(i_clk, i_reset, i_ce, i_data, o_data);
-	parameter	IW=15, OW=16, LGALPHA=4;
-	parameter	[OW-1:0]	RESET_VALUE = 0;
-	localparam	AW=OW;
-	//
-	input	wire	i_clk, i_reset, i_ce;
-	input	wire	[(IW-1):0]	i_data;
-	output	wire	[(OW-1):0]	o_data;
+// }}}
+module	iiravg #(
+		// {{{
+		parameter	IW=15, OW=16, LGALPHA=4,
+		parameter	[OW-1:0]	RESET_VALUE = 0,
+		localparam	AW=OW
+		// }}}
+	) (
+		// {{{
+		// (i_clk, i_reset, i_ce, i_data, o_data);
+		//
+		input	wire	i_clk, i_reset, i_ce,
+		input	wire	[(IW-1):0]	i_data,
+		output	wire	[(OW-1):0]	o_data
+		// }}}
+	);
 
+	// Local declarations
+	// {{{
 	wire	signed [(AW-1):0]	difference, adjustment;
 	reg	[(AW-1):0]	r_average;
+	// }}}
 
 	assign	difference = { i_data, {(AW-IW){1'b0}} } - r_average;
 	assign	adjustment ={ {(LGALPHA){(difference[(AW-1)])}},

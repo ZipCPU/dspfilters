@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
 // Filename:	slowsymf_tb.cpp
-//
+// {{{
 // Project:	DSP Filtering Example Project
 //
 // Purpose:	A generic filter testing module to test a symmetric filter
@@ -15,9 +15,9 @@
 //		Gisselquist Technology, LLC
 //
 ////////////////////////////////////////////////////////////////////////////////
-//
-// Copyright (C) 2018-2020, Gisselquist Technology, LLC
-//
+// }}}
+// Copyright (C) 2018-2021, Gisselquist Technology, LLC
+// {{{
 // This file is part of the DSP filtering set of designs.
 //
 // The DSP filtering designs are free RTL designs: you can redistribute them
@@ -34,13 +34,14 @@
 // along with these designs.  (It's in the $(ROOT)/doc directory.  Run make
 // with no target there if the PDF file isn't present.)  If not, see
 // <http://www.gnu.org/licenses/> for a copy.
-//
+// }}}
 // License:	LGPL, v3, as defined and found on www.gnu.org,
+// {{{
 //		http://www.gnu.org/licenses/lgpl.html
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-//
+// }}}
 #include <signal.h>
 #include <time.h>
 #include <ctype.h>
@@ -66,6 +67,8 @@ const	unsigned IW = 16,
 		CKPCE = (NTAPS-1)/2+3;
 const	unsigned	MIDP = (NTAPS-1)/2;
 
+// nextlg
+// {{{
 static	int     nextlg(int vl) {
 	int     r;
 
@@ -73,11 +76,14 @@ static	int     nextlg(int vl) {
 		;
 	return r;
 }
+// }}}
 
 class	SLOWSYMF_TB : public FILTERTB<Vslowsymf> {
 public:
 	bool		m_done;
 
+	// SLOWSYMF_TB
+	// {{{
 	SLOWSYMF_TB(void) {
 		IW(::IW);
 		TW(::TW);
@@ -87,23 +93,36 @@ public:
 		CKPCE(::CKPCE);
 		// NTAPS(odd(::NTAPS));
 	}
+	// }}}
 
+	// odd
+	// {{{
 	int	odd(int v) {
 		int ov = v;
 		ov = ((v-1)&(-2))+1;
 printf("ODD of %d is %d\n", v, ov);
 		return ov;
 	}
+	// }}}
+
+	// test
+	// {{{
 	void	test(int nlen, int64_t *data) {
 		clear_filter();
 		FILTERTB<Vslowsymf>::test(nlen, data);
 	}
+	// }}}
 
+	// load
+	// {{{
 	void	load(int nlen, int64_t *data) {
 		reset();
 		FILTERTB<Vslowsymf>::load(nlen, data);
 	}
+	// }}}
 
+	// clear_filter
+	// {{{
 	void	clear_filter(void) {
 		m_core->i_tap_wr = 0;
 
@@ -118,7 +137,10 @@ printf("ODD of %d is %d\n", v, ov);
 		for(int k=0; k<CKPCE(); k++)
 			tick();
 	}
+	// }}}
 
+	// testload
+	// {{{
         void    testload(int nlen, int64_t *data) {
 		load(nlen, data);
 
@@ -136,7 +158,7 @@ printf("ODD of %d is %d\n", v, ov);
 				assert(m == 0);
 		}
         }
-
+	// }}}
 };
 
 SLOWSYMF_TB	*tb;
@@ -155,6 +177,7 @@ int	main(int argc, char **argv) {
 	tb->reset();
 
 	printf("Impulse tests\n");
+	// {{{
 	for(unsigned k=0; k<NTAPS/2+1; k++) {
 		//
 		// Create a new coefficient vector
@@ -172,12 +195,13 @@ int	main(int argc, char **argv) {
 		// Then test whether or not the filter overflows
 		tb->test_overflow();
 	}
-
-	printf("Block Fil, Impulse input\n");
+	// }}}
 
 	//
 	// Block filter, impulse input
-	//
+	// {{{
+	printf("Block Fil, Impulse input\n");
+
 	for(unsigned i=0; i<MIDP; i++)
 		tapvec[i] = TAPVALUE;
 
@@ -193,10 +217,11 @@ int	main(int argc, char **argv) {
 		assert(ivec[i] == IMPULSE * TAPVALUE);
 	for(unsigned i=NTAPS; i<2*NTAPS; i++)
 		assert(0 == ivec[i]);
-
+	// }}}
 	//
 	//
 	// Block filter, block input
+	// {{{
 	// Set every element of an array to the same value
 	printf("Block Fil, block input\n");
 	for(unsigned i=0; i<2*NTAPS; i++)
@@ -241,6 +266,7 @@ int	main(int argc, char **argv) {
 		assert(depth < -13);
 		assert(depth > -14);
 	}
+	// }}}
 
 #ifdef	SYMMETRIC
 	assert(NCOEFFS <= NTAPS);

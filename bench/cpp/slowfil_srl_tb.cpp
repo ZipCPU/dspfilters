@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
 // Filename:	slowfil_tb.cpp
-//
+// {{{
 // Project:	DSP Filtering Example Project
 //
 // Purpose:
@@ -10,9 +10,9 @@
 //		Gisselquist Technology, LLC
 //
 ////////////////////////////////////////////////////////////////////////////////
-//
-// Copyright (C) 2017-2020, Gisselquist Technology, LLC
-//
+// }}}
+// Copyright (C) 2017-2021, Gisselquist Technology, LLC
+// {{{
 // This file is part of the DSP filtering set of designs.
 //
 // The DSP filtering designs are free RTL designs: you can redistribute them
@@ -29,13 +29,14 @@
 // along with these designs.  (It's in the $(ROOT)/doc directory.  Run make
 // with no target there if the PDF file isn't present.)  If not, see
 // <http://www.gnu.org/licenses/> for a copy.
-//
+// }}}
 // License:	LGPL, v3, as defined and found on www.gnu.org,
+// {{{
 //		http://www.gnu.org/licenses/lgpl.html
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-//
+// }}}
 #include <signal.h>
 #include <time.h>
 #include <ctype.h>
@@ -60,6 +61,8 @@ const	unsigned IW = 16,
 		DELAY = 2,
 		CKPCE = NTAPS;
 
+// nextlg
+// {{{
 static	int     nextlg(int vl) {
 	int     r;
 
@@ -67,11 +70,14 @@ static	int     nextlg(int vl) {
 		;
 	return r;
 }
+// }}}
 
 class	SLOWFIL_TB : public FILTERTB<Vslowfil_srl> {
 public:
 	bool		m_done;
 
+	// SLOWFIL_TB()
+	// {{{
 	SLOWFIL_TB(void) {
 		IW(::IW);
 		TW(::TW);
@@ -80,17 +86,26 @@ public:
 		DELAY(::DELAY);
 		CKPCE(::CKPCE);
 	}
+	// }}}
 
+	// test
+	// {{{
 	void	test(int nlen, int64_t *data) {
 		clear_filter();
 		FILTERTB<Vslowfil_srl>::test(nlen, data);
 	}
+	// }}}
 
+	// load
+	// {{{
 	void	load(int nlen, int64_t *data) {
 		reset();
 		FILTERTB<Vslowfil_srl>::load(nlen, data);
 	}
+	// }}}
 
+	// clear_filter
+	// {{{
 	void	clear_filter(void) {
 		m_core->i_tap_wr = 0;
 
@@ -105,6 +120,7 @@ public:
 		for(int k=0; k<CKPCE(); k++)
 			tick();
 	}
+	// }}}
 };
 
 SLOWFIL_TB	*tb;
@@ -123,6 +139,7 @@ int	main(int argc, char **argv) {
 	tb->reset();
 
 	printf("Impulse tests\n");
+	// {{{
 	for(unsigned k=0; k<NTAPS; k++) {
 		//
 		// Create a new coefficient vector
@@ -140,12 +157,12 @@ int	main(int argc, char **argv) {
 		// Then test whether or not the filter overflows
 		tb->test_overflow();
 	}
+	// }}}
 
-	printf("Block Fil, Impulse input\n");
-
-	//
 	// Block filter, impulse input
+	// {{{
 	//
+	printf("Block Fil, Impulse input\n");
 	for(unsigned i=0; i<NTAPS; i++)
 		tapvec[i] = TAPVALUE;
 
@@ -161,10 +178,10 @@ int	main(int argc, char **argv) {
 		assert(ivec[i] == IMPULSE * TAPVALUE);
 	for(unsigned i=NTAPS; i<2*NTAPS; i++)
 		assert(0 == ivec[i]);
-
-	//
+	// }}}
 	//
 	// Block filter, block input
+	// {{{
 	// Set every element of an array to the same value
 	printf("Block Fil, block input\n");
 	for(unsigned i=0; i<2*NTAPS; i++)
@@ -209,7 +226,7 @@ int	main(int argc, char **argv) {
 		assert(depth < -13);
 		assert(depth > -14);
 	}
-
+	// }}}
 	assert(NCOEFFS < NTAPS);
 	for(int i=0; i<NCOEFFS; i++)
 		tapvec[i] = icoeffs[i];

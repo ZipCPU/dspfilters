@@ -1,23 +1,30 @@
 [tasks]
 cvr
 prf
+axil prf
+acvr cvr axil
 
 [options]
 cvr: mode cover
 prf: mode prove
-prf: depth 6
-cvr: depth 40
+prf: depth 8
+cvr: depth 110
 
 [engines]
 smtbmc boolector
 
 [script]
+axil: read -define AXILITE
 read -formal histogram.v
-read -formal fwb_slave.v
+axil:  read -formal skidbuffer.v
+axil:  read -formal faxil_slave.v
+~axil: read -formal fwb_slave.v
 # prf: hierarchy -top histogram -chparam AW 4
 cvr: hierarchy -top histogram -chparam AW 4 -chparam NAVGS 16
 prep -top histogram
 
 [files]
 ../../rtl/histogram.v
-fwb_slave.v
+axil:  faxil_slave.v
+axil:  ../../../../wb2axip/trunk/rtl/skidbuffer.v
+~axil: fwb_slave.v

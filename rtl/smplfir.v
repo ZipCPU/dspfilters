@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
 // Filename: 	smplfir.v
-//
+// {{{
 // Project:	DSP Filtering Example Project
 //
 // Purpose:	This is the simplest (non-trivial) FIR filter you can create.
@@ -16,9 +16,9 @@
 //		Gisselquist Technology, LLC
 //
 ////////////////////////////////////////////////////////////////////////////////
-//
-// Copyright (C) 2017-2020, Gisselquist Technology, LLC
-//
+// }}}
+// Copyright (C) 2017-2021, Gisselquist Technology, LLC
+// {{{
 // This file is part of the DSP filtering set of designs.
 //
 // The DSP filtering designs are free RTL designs: you can redistribute them
@@ -35,21 +35,28 @@
 // along with these designs.  (It's in the $(ROOT)/doc directory.  Run make
 // with no target there if the PDF file isn't present.)  If not, see
 // <http://www.gnu.org/licenses/> for a copy.
-//
+// }}}
 // License:	LGPL, v3, as defined and found on www.gnu.org,
+// {{{
 //		http://www.gnu.org/licenses/lgpl.html
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
 //
 `default_nettype	none
-//
-module	smplfir(i_clk, i_ce, i_val, o_val);
-	parameter			IW=15;
-	localparam			OW=IW+1;
-	input	wire			i_clk, i_ce;
-	input	wire	[(IW-1):0]	i_val;
-	output	reg	[(OW-1):0]	o_val;
+// }}}
+module	smplfir #(
+		// {{{
+		parameter			IW=15,
+		localparam			OW=IW+1
+		// }}}
+	) (
+		// {{{
+		input	wire			i_clk, i_ce,
+		input	wire	[(IW-1):0]	i_val,
+		output	reg	[(OW-1):0]	o_val
+		// }}}
+	);
 
 	reg	[(IW-1):0]	delayed;
 

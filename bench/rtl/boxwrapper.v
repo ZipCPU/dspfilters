@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
 // Filename: 	boxwrapper.v
-//
+// {{{
 // Project:	DSP Filtering Example Project
 //
 // Purpose:	To wrap the boxcar.v filter so that it looks like a more generic
@@ -29,9 +29,9 @@
 //		Gisselquist Technology, LLC
 //
 ////////////////////////////////////////////////////////////////////////////////
-//
-// Copyright (C) 2017-2020, Gisselquist Technology, LLC
-//
+// }}}
+// Copyright (C) 2017-2021, Gisselquist Technology, LLC
+// {{{
 // This file is part of the DSP filtering set of designs.
 //
 // The DSP filtering designs are free RTL designs: you can redistribute them
@@ -48,42 +48,72 @@
 // along with these designs.  (It's in the $(ROOT)/doc directory.  Run make
 // with no target there if the PDF file isn't present.)  If not, see
 // <http://www.gnu.org/licenses/> for a copy.
-//
+// }}}
 // License:	LGPL, v3, as defined and found on www.gnu.org,
+// {{{
 //		http://www.gnu.org/licenses/lgpl.html
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
 //
 `default_nettype	none
-//
-module	boxwrapper(i_clk, i_reset, i_tap_wr, i_tap, i_ce, i_sample, o_result);
-	parameter	IW=16, OW=(IW+LGMEM), NTAPS=(1<<LGMEM), TW=LGMEM, LGMEM=6;
-	input	wire	i_clk, i_reset;
-	//
-	input	wire			i_tap_wr;
-	input	wire	[(TW-1):0]	i_tap;
-	//
-	input	wire			i_ce;
-	input	wire	[(IW-1):0]	i_sample;
-	output	wire	[(OW-1):0]	o_result;
+// }}}
+module	boxwrapper #(
+		// {{{
+		parameter	IW=16,			// Input width
+				LGMEM=6,		// Log_2 mem size
+				OW=(IW+LGMEM),		// Output width
+				NTAPS=(1<<LGMEM),	// Num taps
+				TW=LGMEM
+		// }}}
+	) (
+		// {{{
+		// i_clk, i_reset, i_tap_wr, i_tap, i_ce, i_sample, o_result);
+		input	wire	i_clk, i_reset,
+		//
+		input	wire			i_tap_wr,
+		input	wire	[(TW-1):0]	i_tap,
+		//
+		input	wire			i_ce,
+		input	wire	[(IW-1):0]	i_sample,
+		output	wire	[(OW-1):0]	o_result
+		// }}}
+	);
 
+	// Local declarations
+	// {{{
 	reg	[(LGMEM-1):0]	r_navg;
 	wire	[(LGMEM-1):0]	navg;
+	// }}}
+
+	// r_navg
+	// {{{
 	initial	r_navg = -4;
 	always @(posedge i_clk)
-		if (i_tap_wr)
-			r_navg <= i_sample[(LGMEM-1):0];
+	if (i_tap_wr)
+		r_navg <= i_sample[(LGMEM-1):0];
+	// }}}
 
 	assign	navg = (i_tap_wr)?i_sample[(LGMEM-1):0] : r_navg;
 
-	boxcar	#(.IW(IW), .OW(OW), .LGMEM(LGMEM))
-		 boxfilter(i_clk, (i_reset)||(i_tap_wr),
-			navg, i_ce, i_sample, o_result);
+	// Instantiate the MUT: module under test
+	// {{{
+	boxcar	#(
+		// {{{
+		.IW(IW), .OW(OW), .LGMEM(LGMEM)
+		// }}}
+	) boxfilter(
+		// {{{
+		i_clk, (i_reset)||(i_tap_wr),
+		navg, i_ce, i_sample, o_result
+		// }}}
+	);
 
 	// Make verilator happy
+	// {{{
 	// verilator lint_off UNUSED
-	wire	[(TW-1):0]	unused;
-	assign	unused = i_tap;
+	wire	unused;
+	assign	unused = { 1'b0, i_tap };
 	// verilator lint_on  UNUSED
+// }}}
 endmodule

@@ -1,7 +1,7 @@
 ###############################################################################
 ##
 ## Filename:	Makefile
-##
+## {{{
 ## Project:	DSP Filtering Example Project
 ##
 ## Purpose:	This is the master project makefile, building simulation
@@ -13,9 +13,9 @@
 ##		Gisselquist Technology, LLC
 ##
 ################################################################################
-##
-## Copyright (C) 2018-2020, Gisselquist Technology, LLC
-##
+## }}}
+## Copyright (C) 2018-2021, Gisselquist Technology, LLC
+## {{{
 ## This file is part of the DSP filtering set of designs.
 ##
 ## The DSP filtering designs are free RTL designs: you can redistribute them
@@ -32,29 +32,45 @@
 ## along with these designs.  (It's in the $(ROOT)/doc directory.  Run make
 ## with no target there if the PDF file isn't present.)  If not, see
 ## <http://www.gnu.org/licenses/> for a copy.
-##
+## }}}
 ## License:	LGPL, v3, as defined and found on www.gnu.org,
+## {{{
 ##		http://www.gnu.org/licenses/lgpl.html
 ##
 ################################################################################
 ##
-##
+## }}}
 all: benchcpp
 SUBMAKE := make --no-print-directory -C
 
+.PHONY: rtld
+## {{{
 rtld:
 	$(SUBMAKE) rtl
+## }}}
 
+.PHONY: benchrtl
+## {{{
 benchrtl: rtld
 	$(SUBMAKE) bench/rtl
+## }}}
 
+.PHONY: benchcpp
+## {{{
 benchcpp: benchrtl rtl
 	$(SUBMAKE) bench/cpp
+## }}}
 
+.PHONY: formal
+## {{{
 formal: rtld
 	$(SUBMAKE) formal
+## }}}
 
+.PHONY: clean
+## {{{
 clean:
 	$(SUBMAKE) rtl       clean
 	$(SUBMAKE) bench/rtl clean
 	$(SUBMAKE) bench/cpp clean
+## }}}

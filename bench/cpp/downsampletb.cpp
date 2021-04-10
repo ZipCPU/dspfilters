@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
 // Filename: 	downsampletb.cpp
-//
+// {{{
 // Project:	DSP Filtering Example Project
 //
 // Purpose:	A generic downsampling/filter testbench class
@@ -10,9 +10,9 @@
 //		Gisselquist Technology, LLC
 //
 ////////////////////////////////////////////////////////////////////////////////
-//
-// Copyright (C) 2019-2020, Gisselquist Technology, LLC
-//
+// }}}
+// Copyright (C) 2019-2021, Gisselquist Technology, LLC
+// {{{
 // This file is part of the DSP filtering set of designs.
 //
 // The DSP filtering designs are free RTL designs: you can redistribute them
@@ -29,13 +29,14 @@
 // along with these designs.  (It's in the $(ROOT)/doc directory.  Run make
 // with no target there if the PDF file isn't present.)  If not, see
 // <http://www.gnu.org/licenses/> for a copy.
-//
+// }}}
 // License:	LGPL, v3, as defined and found on www.gnu.org,
+// {{{
 //		http://www.gnu.org/licenses/lgpl.html
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-//
+// }}}
 #include <math.h>
 #include "downsampletb.h"
 
@@ -55,6 +56,8 @@ static uint64_t ubits(uint64_t val, int b) {
 }
 */
 
+// tick
+// {{{
 template<class VFLTR> void	DOWNSAMPLETB<VFLTR>::tick(void) {
 	bool	i_ce, o_ce;
 	int64_t	vec[2];
@@ -76,7 +79,10 @@ template<class VFLTR> void	DOWNSAMPLETB<VFLTR>::tick(void) {
 	if (this->result_fp)
 		fwrite(vec, sizeof(int64_t), 2, this->result_fp);
 }
+// }}}
 
+// reset
+// {{{
 template<class VFLTR> void	DOWNSAMPLETB<VFLTR>::reset(void) {
 	TESTB<VFLTR>::m_core->i_tap     = 0;
 	TESTB<VFLTR>::m_core->i_sample  = 0;
@@ -87,7 +93,10 @@ template<class VFLTR> void	DOWNSAMPLETB<VFLTR>::reset(void) {
 
 	TESTB<VFLTR>::m_core->i_reset = 0;
 }
+// }}}
 
+// sync
+// {{{
 template<class VFLTR> void	DOWNSAMPLETB<VFLTR>::sync(void) {
 	bool	syncd = false;
 	int	ncks = (NTAPS()+1) / NDOWN() + 1;
@@ -115,7 +124,10 @@ template<class VFLTR> void	DOWNSAMPLETB<VFLTR>::sync(void) {
 		tick();
 	}
 }
+// }}}
 
+// apply
+// {{{
 template<class VFLTR> void	DOWNSAMPLETB<VFLTR>::apply(int &nlen, int64_t *data) {
 	int	inlen = nlen, outln = 0;
 	int	nclks = (NTAPS()+1) / NDOWN() + 1;
@@ -148,8 +160,12 @@ template<class VFLTR> void	DOWNSAMPLETB<VFLTR>::apply(int &nlen, int64_t *data) 
 	nlen = outln;
 printf("Applied: %d in, %d out\n", inlen, outln);
 }
+// }}}
 
-template<class VFLTR> void	DOWNSAMPLETB<VFLTR>::load(int  ntaps, int64_t *data) {
+// load
+// {{{
+template<class VFLTR> void	DOWNSAMPLETB<VFLTR>::load(int  ntaps,
+				int64_t *data) {
 	const	bool	REVERSE = false;
 	TESTB<VFLTR>::m_core->i_reset    = 0;
 	TESTB<VFLTR>::m_core->i_ce       = 0;
@@ -168,8 +184,12 @@ template<class VFLTR> void	DOWNSAMPLETB<VFLTR>::load(int  ntaps, int64_t *data) 
 
 	FILTERTB<VFLTR>::clear_cache();
 }
+// }}}
 
-template<class VFLTR> void	DOWNSAMPLETB<VFLTR>::test(int  &nlen, int64_t *data) {
+// test
+// {{{
+template<class VFLTR> void	DOWNSAMPLETB<VFLTR>::test(int  &nlen,
+			int64_t *data) {
 	const	bool	debug = true;
 	int	inlen = nlen, outln = 0, nclks = (NTAPS()+1) / NDOWN() + 1;
 	assert(nlen > 0);
@@ -220,7 +240,10 @@ template<class VFLTR> void	DOWNSAMPLETB<VFLTR>::test(int  &nlen, int64_t *data) 
 	TESTB<VFLTR>::m_core->i_ce = 0;
 	nlen = outln;
 }
+// }}}
 
+// operator[]
+// {{{
 template<class VFLTR> int	DOWNSAMPLETB<VFLTR>::operator[](const int tap) {
 
 	if ((tap < 0)||(tap >= 2*NTAPS()))
@@ -265,8 +288,12 @@ if (sub+i*NDOWN() < maxinput)
 
 	return this->m_hk[tap];
 }
+// }}}
 
-template<class VFLTR> void	DOWNSAMPLETB<VFLTR>::testload(int nlen, int64_t *data) {
+// testload
+// {{{
+template<class VFLTR> void	DOWNSAMPLETB<VFLTR>::testload(int nlen,
+				int64_t *data) {
 	bool	mismatch = false;
 	load(nlen, data);
 	reset();
@@ -288,7 +315,10 @@ template<class VFLTR> void	DOWNSAMPLETB<VFLTR>::testload(int nlen, int64_t *data
 	// for(int k=nlen; k<2*DELAY(); k++)
 	//	assert(0 == (*this)[k]);
 }
+// }}}
 
+// test_overflow
+// {{{
 template<class VFLTR> bool	DOWNSAMPLETB<VFLTR>::test_overflow(void) {
 #ifdef	NOT_IMPLEMENTED
 #warning "test_overflow() not implemented (yet)"
@@ -337,7 +367,10 @@ template<class VFLTR> bool	DOWNSAMPLETB<VFLTR>::test_overflow(void) {
 	return (pass)&&(tested);
 #endif
 }
+// }}}
 
+// response
+// {{{
 template<class VFLTR> void	DOWNSAMPLETB<VFLTR>::response(int nfreq,
 		COMPLEX *rvec, double mag, const char *fname) {
 	int	nlen = NTAPS();
@@ -422,9 +455,12 @@ template<class VFLTR> void	DOWNSAMPLETB<VFLTR>::response(int nfreq,
 		fclose(fp);
 	}
 }
+// }}}
 
-template<class VFLTR> void DOWNSAMPLETB<VFLTR>::measure_lowpass(double &fp, double &fs,
-			double &depth, double &ripple) {
+// measure_lowpass
+// {{{
+template<class VFLTR> void DOWNSAMPLETB<VFLTR>::measure_lowpass(double &fp,
+			double &fs, double &depth, double &ripple) {
 	const	int	NLEN = 16*NTAPS();
 	COMPLEX	*data = new COMPLEX[NLEN];
 	double	*magv = new double[NLEN];
@@ -486,3 +522,4 @@ printf("--------\n");
 	fp = fp / NLEN / 2.;
 	delete[]	data;
 }
+// }}}

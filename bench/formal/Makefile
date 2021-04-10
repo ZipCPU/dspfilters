@@ -1,7 +1,7 @@
 ################################################################################
 ##
 ## Filename:	Makefile
-##
+## {{{
 ## Project:	DSP Filtering Example Project
 ##
 ## Purpose:	To direct the formal verification of the some of the
@@ -14,9 +14,9 @@
 ##		Gisselquist Technology, LLC
 ##
 ################################################################################
-##
-## Copyright (C) 2017-2019, Gisselquist Technology, LLC
-##
+## }}}
+## Copyright (C) 2017-2021, Gisselquist Technology, LLC
+## {{{
 ## This file is part of the DSP filtering set of designs.
 ##
 ## The DSP filtering designs are free RTL designs: you can redistribute them
@@ -33,13 +33,14 @@
 ## along with these designs.  (It's in the $(ROOT)/doc directory.  Run make
 ## with no target there if the PDF file isn't present.)  If not, see
 ## <http://www.gnu.org/licenses/> for a copy.
-##
+## }}}
 ## License:	LGPL, v3, as defined and found on www.gnu.org,
+## {{{
 ##		http://www.gnu.org/licenses/lgpl.html
 ##
 ################################################################################
 ##
-##
+## }}}
 TESTS := lfsr lfsr_equiv fastfir histogram cheapspectral # boxcar
 .PHONY: $(TESTS)
 all: $(TESTS)
@@ -53,47 +54,57 @@ HIST=histogram
 BCAR=boxcar
 SPECTRAL=cheapspectral
 
-SMTBMC  := yosys-smtbmc
-# SOLVER  := -s z3
-SOLVER  := -s yices
-# BMCARGS := --presat $(SOLVER)
-BMCARGS := $(SOLVER)
-INDARGS := $(SOLVER) -i
-
-$(EQUIV).smt2: $(EQUIV).v $(RTL)/lfsr_fib.v $(RTL)/lfsr_gal.v
-	yosys -ql $(EQUIV).yslog -s $(EQUIV).ys
-
 .PHONY: $(LFSR)
+## {{{
 $(LFSR): $(LFSR)_prf/PASS
 $(LFSR)_prf/PASS: ../../rtl/$(LFSR).v $(LFSR).sby
 	sby -f $(LFSR).sby prf
+## }}}
 
 .PHONY: $(EQUIV)
+## {{{
 $(EQUIV) : $(EQUIV)_prf/PASS
 $(EQUIV)_prf/PASS: $(EQUIV).sby $(EQUIV).v ../../rtl/lfsr_fib.v ../../rtl/lfsr_gal.v
 	sby -f $(EQUIV).sby prf
+## }}}
 
+.PHONY: $(DELAY)
+## {{{
 $(DELAY) : $(DELAY)_prf/PASS
 $(DELAY)_prf/PASS: ../../rtl/$(DELAY).v $(DELAY).sby
 	sby -f $(DELAY).sby prf
+## }}}
 
+.PHONY: $(BCAR)
+## {{{
 $(BCAR) : $(BCAR)_prf/PASS
 $(BCAR)_prf/PASS: $(BCAR).sby ../../rtl/boxcar.v
 	sby -f $(BCAR).sby prf
+## }}}
 
 .PHONY: $(FFIR)
+## {{{
 $(FFIR) : $(FFIR)_prf/PASS
 $(FFIR)_prf/PASS: ../../rtl/$(FFIR).v $(FFIR).sby
 	sby -f $(FFIR).sby prf
+## }}}
 
 .PHONY: $(HIST)
+## {{{
 $(HIST) : $(HIST)_prf/PASS $(HIST)_cvr/PASS
+$(HIST) : $(HIST)_axil/PASS $(HIST)_acvr/PASS
 $(HIST)_prf/PASS: ../../rtl/$(HIST).v $(HIST).sby
 	sby -f $(HIST).sby prf
 $(HIST)_cvr/PASS: ../../rtl/$(HIST).v $(HIST).sby
 	sby -f $(HIST).sby cvr
+$(HIST)_axil/PASS: ../../rtl/$(HIST).v $(HIST).sby faxil_slave.v
+	sby -f $(HIST).sby axil
+$(HIST)_acvr/PASS: ../../rtl/$(HIST).v $(HIST).sby faxil_slave.v
+	sby -f $(HIST).sby acvr
+## }}}
 
 .PHONY: $(SPECTRAL)
+## {{{
 $(SPECTRAL): $(SPECTRAL)_prf/PASS $(SPECTRAL)_cvr/PASS
 $(SPECTRAL): $(SPECTRAL)_prfz/PASS $(SPECTRAL)_prfdbl/PASS
 $(SPECTRAL)_prf/PASS: ../../rtl/$(SPECTRAL).v fwb_slave.v $(SPECTRAL).sby
@@ -104,7 +115,10 @@ $(SPECTRAL)_prfdbl/PASS: ../../rtl/$(SPECTRAL).v fwb_slave.v $(SPECTRAL).sby
 	sby -f $(SPECTRAL).sby prfdbl
 $(SPECTRAL)_cvr/PASS: ../../rtl/$(SPECTRAL).v fwb_slave.v $(SPECTRAL).sby
 	sby -f $(SPECTRAL).sby cvr
+## }}}
 
+.PHONY: clean
+## {{{
 clean:
 	rm -rf  $(LFSR)_*/
 	rm -rf $(EQUIV)_*/
@@ -112,3 +126,4 @@ clean:
 	rm -rf $(BCAR)_*/
 	rm -rf $(FFIR)/ $(FFIR)_first/ $(FFIR)_second/
 	rm -f  *.check
+## }}}

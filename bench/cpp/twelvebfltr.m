@@ -1,7 +1,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%
 %% Filename: 	twelvebfltr.m
-%%
+%% {{{
 %% Project:	DSP Filtering Example Project
 %%
 %% Purpose:	To bring our filter taps into Octave for examination
@@ -10,9 +10,9 @@
 %%		Gisselquist Technology, LLC
 %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%
-%% Copyright (C) 2017-2020, Gisselquist Technology, LLC
-%%
+%% }}}
+%% Copyright (C) 2017-2021, Gisselquist Technology, LLC
+%% {{{
 %% This file is part of the DSP filtering set of designs.
 %%
 %% The DSP filtering designs are free RTL designs: you can redistribute them
@@ -29,14 +29,15 @@
 %% along with these designs.  (It's in the $(ROOT)/doc directory.  Run make
 %% with no target there if the PDF file isn't present.)  If not, see
 %% <http://www.gnu.org/licenses/> for a copy.
-%%
+%% }}}
 %% License:	LGPL, v3, as defined and found on www.gnu.org,
+%% {{{
 %%		http://www.gnu.org/licenses/lgpl.html
 %%
 %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%
-%%
+%% }}}
 design = [ ...
 	  -4.565423e-05,   0.000000e+00,   5.807274e-05,   0.000000e+00, ...
 	  -9.387644e-05,   0.000000e+00,   1.431971e-04,   0.000000e+00, ...

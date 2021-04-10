@@ -1,7 +1,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%
 %% Filename: 	generic_fir.m
-%%
+%% {{{
 %% Project:	DSP Filtering Example Project
 %%
 %% Purpose:	To plot the results of the filter frequency response, assuming
@@ -11,9 +11,9 @@
 %%		Gisselquist Technology, LLC
 %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%
-%% Copyright (C) 2017-2020, Gisselquist Technology, LLC
-%%
+%% }}}
+%% Copyright (C) 2017-2021, Gisselquist Technology, LLC
+%% {{{
 %% This file is part of the DSP filtering set of designs.
 %%
 %% The DSP filtering designs are free RTL designs: you can redistribute them
@@ -30,14 +30,15 @@
 %% along with these designs.  (It's in the $(ROOT)/doc directory.  Run make
 %% with no target there if the PDF file isn't present.)  If not, see
 %% <http://www.gnu.org/licenses/> for a copy.
-%%
+%% }}}
 %% License:	LGPL, v3, as defined and found on www.gnu.org,
+%% {{{
 %%		http://www.gnu.org/licenses/lgpl.html
 %%
 %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%
-%%
+%% }}}
 % Read the results from the file
 fid  =fopen('filter_tb.dbl','r'); dat=fread(fid,[2 inf],'double'); fclose(fid);
 %

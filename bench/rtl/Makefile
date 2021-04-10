@@ -1,7 +1,7 @@
 ################################################################################
 ##
 ## Filename:	Makefile
-##
+## {{{
 ## Project:	DSP Filtering Example Project
 ##
 ## Purpose:	To direct the Verilator build of any RTL sources used for
@@ -15,9 +15,9 @@
 ##		Gisselquist Technology, LLC
 ##
 ################################################################################
-##
-## Copyright (C) 2017-2020, Gisselquist Technology, LLC
-##
+## }}}
+## Copyright (C) 2017-2021, Gisselquist Technology, LLC
+## {{{
 ## This file is part of the DSP filtering set of designs.
 ##
 ## The DSP filtering designs are free RTL designs: you can redistribute them
@@ -34,13 +34,14 @@
 ## along with these designs.  (It's in the $(ROOT)/doc directory.  Run make
 ## with no target there if the PDF file isn't present.)  If not, see
 ## <http://www.gnu.org/licenses/> for a copy.
-##
+## }}}
 ## License:	LGPL, v3, as defined and found on www.gnu.org,
+## {{{
 ##		http://www.gnu.org/licenses/lgpl.html
 ##
 ################################################################################
 ##
-##
+## }}}
 all:
 FBDIR := .
 VDIRFB:= $(FBDIR)/obj_dir
@@ -49,24 +50,30 @@ VFLAGS := -O3 -Wall -MMD -trace -y ../../rtl -cc
 SUBMAKE := make --no-print-directory -C
 
 .PHONY: all boxwrapper
+## {{{
 all: boxwrapper
+## }}}
 
 boxwrapper:	$(VDIRFB)/Vboxwrapper__ALL.a
 
 $(VDIRFB)/V%.cpp $(VDIRFB)/V%.h $(VDIRFB)/V%.mk: $(FBDIR)/%.v
 	$(VERILATOR) $(VFLAGS) $*.v
 
-#$(VDIRFB)/V%__ALL.a: $(VDIRFB)/V%.mk
-#	$(SUBMAKE) $(VDIRFB)/ -f $< $(subst $(VDIRFB)/,,$@)
-
 $(VDIRFB)/Vboxwrapper__ALL.a: $(VDIRFB)/Vboxwrapper.mk
 	$(SUBMAKE) $(VDIRFB)/ -f Vboxwrapper.mk Vboxwrapper__ALL.a
 
 .PHONY: clean
+## {{{
 clean:
 	rm -rf $(VDIRFB)/
+## }}}
 
+## Dependencies
+## {{{
 DEPS=$(wildcard $(VDIRFB)/*.d)
+ifneq ($(MAKECMDGOALS),clean)
 ifneq ($(DEPS),)
 include $(DEPS)
 endif
+endif
+## }}}

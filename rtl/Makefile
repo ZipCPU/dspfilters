@@ -1,7 +1,7 @@
 ###############################################################################
 ##
 ## Filename:	Makefile
-##
+## {{{
 ## Project:	DSP Filtering Example Project
 ##
 ## Purpose:	To direct the Verilator build of the SoC sources.  The result
@@ -15,9 +15,9 @@
 ##		Gisselquist Technology, LLC
 ##
 ################################################################################
-##
-## Copyright (C) 2015-2019, Gisselquist Technology, LLC
-##
+## }}}
+## Copyright (C) 2015-2021, Gisselquist Technology, LLC
+## {{{
 ## This file is part of the DSP filtering set of designs.
 ##
 ## The DSP filtering designs are free RTL designs: you can redistribute them
@@ -34,13 +34,14 @@
 ## along with these designs.  (It's in the $(ROOT)/doc directory.  Run make
 ## with no target there if the PDF file isn't present.)  If not, see
 ## <http://www.gnu.org/licenses/> for a copy.
-##
+## }}}
 ## License:	LGPL, v3, as defined and found on www.gnu.org,
+## {{{
 ##		http://www.gnu.org/licenses/lgpl.html
 ##
 ################################################################################
 ##
-##
+## }}}
 all:
 FBDIR := .
 VDIRFB:= $(FBDIR)/obj_dir
@@ -51,6 +52,8 @@ CORES := smplfir iiravg genericfir fastfir boxcar lfsr_gal lfsr_fib delayw lfsr 
 .PHONY: all $(CORES)
 all: $(CORES) # symfil
 
+## Abbreviations
+## {{{
 genericfir:	$(VDIRFB)/Vgenericfir__ALL.a
 fastfir:	$(VDIRFB)/Vfastfir__ALL.a
 symfil:		$(VDIRFB)/Vsymfil__ALL.a
@@ -68,6 +71,7 @@ delayw:		$(VDIRFB)/Vdelayw__ALL.a
 histogram:	$(VDIRFB)/Vhistogram__ALL.a
 subfildown:	$(VDIRFB)/Vsubfildown__ALL.a
 cheapspectral:	$(VDIRFB)/Vcheapspectral__ALL.a
+## }}}
 
 $(VDIRFB)/V%.cpp $(VDIRFB)/V%.h $(VDIRFB)/V%.mk: $(FBDIR)/%.v
 	$(VERILATOR) $(VFLAGS) $*.v

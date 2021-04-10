@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
 // Filename: 	cheapspectral.v
-//
+// {{{
 // Project:	DSP Filtering Example Project
 //
 // Purpose:	To create a cheap autocorrelation estimate of an incoming
@@ -94,9 +94,9 @@
 //		Gisselquist Technology, LLC
 //
 ////////////////////////////////////////////////////////////////////////////////
-//
-// Copyright (C) 2020, Gisselquist Technology, LLC
-//
+// }}}
+// Copyright (C) 2020-2021, Gisselquist Technology, LLC
+// {{{
 // This file is part of the DSP filtering set of designs.
 //
 // The DSP filtering designs are free RTL designs: you can redistribute them
@@ -113,53 +113,60 @@
 // along with these designs.  (It's in the $(ROOT)/doc directory.  Run make
 // with no target there if the PDF file isn't present.)  If not, see
 // <http://www.gnu.org/licenses/> for a copy.
-//
+// }}}
 // License:	LGPL, v3, as defined and found on www.gnu.org,
+// {{{
 //		http://www.gnu.org/licenses/lgpl.html
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
 //
 `default_nettype	none
-//
-module	cheapspectral(i_clk, i_reset,
-		i_data_ce, i_data,
-		i_wb_cyc, i_wb_stb, i_wb_we, i_wb_addr, i_wb_data, i_wb_sel,
-			o_wb_stall, o_wb_ack, o_wb_data,
-		o_int
+// }}}
+module	cheapspectral #(
+		// {{{
+		parameter [0:0]	OPT_DBLBUFFER = 1'b0,
+		parameter [0:0]	OPT_AUTO_RESTART = OPT_DBLBUFFER,
+		parameter [0:0]	OPT_LOWPOWER = 1'b0,
+		parameter	LGLAGS = 6,
+		parameter	IW = 10,	// Input data Width
+		parameter	LGNAVG = 15,
+		localparam	AW = LGLAGS+((OPT_DBLBUFFER) ? 1:0),
+		localparam	DW = 32	// Bus data width
+		// }}}
+	) (
+		// {{{
+		input	wire			i_clk, i_reset,
+		// Incoming data
+		// {{{
+		input	wire			i_data_ce,
+		input	wire	[IW-1:0]	i_data,
+		// }}}
+		// Wishbone interface
+		// {{{
+		input	wire			i_wb_cyc, i_wb_stb, i_wb_we,
+		input	wire	[LGLAGS-1:0]	i_wb_addr,
+		input	wire	[DW-1:0]	i_wb_data,
+		input	wire	[DW/8-1:0]	i_wb_sel,
+		output	wire			o_wb_stall,
+		output	reg			o_wb_ack,
+		output	reg	[DW-1:0]	o_wb_data,
+		// }}}
+		output	reg			o_int
 `ifdef	VERILATOR
-		, o_dblbuffer, o_restart, o_width, o_lglags, o_lgnavg
+		// Communicate the details of our setup with our Verilator
+		// test bench
+		// {{{
+		, output reg	[0:0]		o_dblbuffer, o_restart,
+		output	reg	[4:0]		o_width,
+		output	reg	[9:0]		o_lglags, o_lgnavg
+		// }}}
 `endif
-		);
-	parameter [0:0]	OPT_DBLBUFFER = 1'b0;
-	parameter [0:0]	OPT_AUTO_RESTART = OPT_DBLBUFFER;
-	parameter [0:0]	OPT_LOWPOWER = 1'b0;
-	parameter	LGLAGS = 6;
-	parameter	IW = 10;	// Input data Width
-	parameter	LGNAVG = 15;
-	localparam	AW = LGLAGS+((OPT_DBLBUFFER) ? 1:0);
-	localparam	DW = 32;	// Bus data width
-	input	wire			i_clk, i_reset;
-	//
-	input	wire			i_data_ce;
-	input	wire	[IW-1:0]	i_data;
-	//
-	input	wire			i_wb_cyc, i_wb_stb, i_wb_we;
-	input	wire	[LGLAGS-1:0]	i_wb_addr;
-	input	wire	[DW-1:0]	i_wb_data;
-	input	wire	[DW/8-1:0]	i_wb_sel;
-	output	wire			o_wb_stall;
-	output	reg			o_wb_ack;
-	output	reg	[DW-1:0]	o_wb_data;
-	//
-	output	reg			o_int;
-`ifdef	VERILATOR
-	//
-	// Communicate the details of our setup with our Verilator test bench
-	output	reg	[0:0]		o_dblbuffer, o_restart;
-	output	reg	[4:0]		o_width;
-	output	reg	[9:0]		o_lglags, o_lgnavg;
+		// }}}
+	);
 
+`ifdef	VERILATOR
+	// {{{
 	always @(*)
 	begin
 		o_dblbuffer = OPT_DBLBUFFER;
@@ -168,14 +175,17 @@ module	cheapspectral(i_clk, i_reset,
 		o_lglags    = LGLAGS;
 		o_lgnavg    = LGNAVG;
 	end
+	// }}}
 `endif
 
-
+	// Local declarations
+	// {{{
 	reg	[LGLAGS-1:0]	data_write_address;
 	reg	[IW-1:0]	data_mem [0:(1<<LGLAGS)-1];
 
-	reg			start_request, check_this, running,clear_memory,
+	reg			check_this, running,clear_memory,
 				last_read_address;
+	wire			start_request;
 	reg	[LGLAGS-1:0]	delayed_addr;
 	reg	[AW-1:0]	av_read_addr;
 	reg	[LGNAVG-1:0]	avcounts;
@@ -195,10 +205,13 @@ module	cheapspectral(i_clk, i_reset,
 
 	reg				last_write, last_tmp;
 
+	reg	[AB-1:0]	data_out;
+	// }}}
+
 	////////////////////////////////////////////////////////////////////////
 	//
 	// New data logic
-	//
+	// {{{
 	////////////////////////////////////////////////////////////////////////
 	//
 	//
@@ -223,35 +236,39 @@ module	cheapspectral(i_clk, i_reset,
 	always @(posedge i_clk)
 	if (i_data_ce)
 		data_mem[data_write_address] <= i_data;
-
+	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//
 	// Pipeline control logic
-	//
+	// {{{
 	////////////////////////////////////////////////////////////////////////
 	//
 
-	//
 	// start_request
-	//
+	// {{{
 	generate if (OPT_AUTO_RESTART)
 	begin : ALWAYS_RESTART
 
-		always @(*)
-			start_request = 1'b1;
+		assign start_request = 1'b1;
 
 	end else begin : RESTART_ON_REQUEST
+		reg	r_start_request;
 
-		initial	start_request = 1;
+		initial	r_start_request = 1;
 		always @(posedge i_clk)
 		if (i_reset)
-			start_request <= 1'b1;
+			r_start_request <= 1'b1;
 		else if (i_wb_stb && i_wb_we)
-			start_request <= 1'b1;
+			r_start_request <= 1'b1;
 		else if (!running && i_data_ce && check_this)
-			start_request <= 1'b0;
-	end endgenerate
+			r_start_request <= 1'b0;
 
+		assign	start_request = r_start_request;
+	end endgenerate
+	// }}}
+
+	// check_this
+	// {{{
 	initial	check_this = 1;
 	always @(posedge i_clk)
 	if (i_reset)
@@ -260,14 +277,20 @@ module	cheapspectral(i_clk, i_reset,
 		check_this <= (check_this || start_request || !(&avcounts));
 	else
 		check_this <= !(&avcounts);
+	// }}}
 
+	// o_int
+	// {{{
 	initial	o_int = 0;
 	always @(posedge i_clk)
 	if (i_reset || start_request)
 		o_int <= 1'b0;
 	else
 		o_int <= update_memory && last_write && (&av_write_addr);
+	// }}}
 
+	// avcounts
+	// {{{
 	initial	avcounts = 0;
 	always @(posedge i_clk)
 	if (i_reset)
@@ -279,21 +302,27 @@ module	cheapspectral(i_clk, i_reset,
 		else if (i_data_ce && check_this)
 			avcounts <= avcounts + 1;
 	end
+	// }}}
 
+	// delayed_addr
+	// {{{
 	always @(posedge i_clk)
 	if (running && !last_read_address)
 		delayed_addr <= delayed_addr + 1;
 	else
 		delayed_addr <= data_write_address + 1
 			+ ((i_data_ce && check_this) ? 1:0);
+	// }}}
 
 	always @(*)
 		last_read_address = (running && (&av_read_addr[LGLAGS-1:0]));
 			// && av_read_addr[LGLAGS-1:1] && !av_read_addr[0]);
 
+	// av_read_addr
+	// {{{
 	generate if (OPT_DBLBUFFER)
 	begin : DOUBLE_BUFFER_AVADDR
-
+		// {{{
 		reg			src_buffer;
 		reg	[LGLAGS-1:0]	read_addr;
 
@@ -312,17 +341,20 @@ module	cheapspectral(i_clk, i_reset,
 
 		always @(*)
 			av_read_addr = { src_buffer, read_addr };
-
+		// }}}
 	end else begin : SINGLE_BUFFER_AVADDR
-
+		// {{{
 		always @(posedge i_clk)
 		if (running)
 			av_read_addr <= av_read_addr + 1;
 		else // if (i_data_ce)
 			av_read_addr <= 0;
-
+		// }}}
 	end endgenerate
+	// }}}
 
+	// running, clear_memory
+	// {{{
 	initial	running = 1'b0;
 	initial	clear_memory = 1'b1;
 	always @(posedge i_clk)
@@ -345,73 +377,110 @@ module	cheapspectral(i_clk, i_reset,
 		if (start_request)
 			clear_memory <= 1'b1;
 	end
+	// }}}
 
-	//
-	// Pipeline valid signaling
-	//
+	// run_pipe: Pipeline valid signaling
+	// {{{
 	initial	run_pipe = 0;
 	always @(posedge i_clk)
 	if (i_reset)
 		run_pipe <= 0;
 	else
 		run_pipe <= { run_pipe[0], running };
+	// }}}
 
+	// }}}
+	////////////////////////////////////////////////////////////////////////
+	//
+	// Clock 0 -- !running
+	// {{{
 	////////////////////////////////////////////////////////////////////////
 	//
 	//
-	// Clock 0 -- !running
+
 	//	This is the same clock as the data logic taking place above
 	// Valid this cycle:
 	//	delayed_addr, i_data_ce, i_data
 	//
+
+	// new_data
+	// {{{
 	always @(posedge i_clk)
 	if (!running && (!OPT_LOWPOWER || (i_data_ce && check_this)))
 		new_data <= i_data;
+	// }}}
 
+	// delayed_data
+	// {{{
 	// We'll need at least one clock where !running in order to get the
 	// delayed_adddress right
 	always @(posedge i_clk)
 	if (!OPT_LOWPOWER || running || (i_data_ce && check_this))
 		delayed_data <= data_mem[delayed_addr];
-
+	// }}}
+	// }}}
+	////////////////////////////////////////////////////////////////////////
+	//
+	// Clock 1 -- running
+	// {{{
 	////////////////////////////////////////////////////////////////////////
 	//
 	//
-	// Clock 1 -- running
+
 	// Valid this cycle:
 	//	new_data, delayed_data, clear_memory, av_read_addr
 	//
 
+	// product
+	// {{{
 `ifdef	FORMAL
+	// {{{
 	(* anyseq *) wire signed [2*IW-1:0]	formal_product;
 
 	always @(posedge i_clk)
 	if (!OPT_LOWPOWER || running)
 		product <= formal_product;
+	// }}}
 `else
 	always @(posedge i_clk)
 	if (!OPT_LOWPOWER || running)
 		product <= delayed_data * new_data;
 `endif
+	// }}}
 
+	// first_round
+	// {{{
 	initial	first_round = 1'b1;
 	always @(posedge i_clk)
 		first_round <= clear_memory;
+	// }}}
 
+	// last_average
+	// {{{
 	initial	last_average = 0;
 	always @(posedge i_clk)
 	if (!OPT_LOWPOWER || running)
 		last_average <= avmem[av_read_addr];
+	// }}}
 
+	// }}}
+	////////////////////////////////////////////////////////////////////////
+	//
+	// Clock 2 -- $past(running), run_pipe[0], product is now valid
+	// {{{
 	////////////////////////////////////////////////////////////////////////
 	//
 	//
-	// Clock 2 -- $past(running), run_pipe[0], product is now valid
+
 	// Valid this cycle:
 	//	product, first_round, last_average, av_tmp_addr, last_tmp
 	//
 
 	assign	calculate_average = run_pipe[0];
+
+
+	// new_average
+	// {{{
 	always @(posedge i_clk)
 	if (!OPT_LOWPOWER || calculate_average)
 	begin
@@ -422,23 +491,33 @@ module	cheapspectral(i_clk, i_reset,
 				+ { {(LGNAVG){product[2*IW-1]}}, product };
 	end else
 		new_average <= 0;
+	// }}}
 
-
+	// av_write_addr, av_tmp_addr
+	// {{{
 	initial { av_write_addr, av_tmp_addr } = 0;
 	always @(posedge i_clk)
 		{ av_write_addr, av_tmp_addr } <= { av_tmp_addr, av_read_addr};
+	// }}}
 
+	// last_write, last_tmp
+	// {{{
 	initial { last_write, last_tmp } = 0;
 	always @(posedge i_clk)
 	if (i_reset || (i_wb_we && i_wb_stb))
 		{ last_write, last_tmp } <= 0;
 	else
 		{ last_write, last_tmp } <= { last_tmp, (&avcounts) };
-
+	// }}}
+	// }}}
+	////////////////////////////////////////////////////////////////////////
+	//
+	// Clock 3 -- run_pipe[1], new_average is now valid
+	// {{{
 	////////////////////////////////////////////////////////////////////////
 	//
 	//
-	// Clock 3 -- run_pipe[1], new_average is now valid
+
 	// Valid this cycle:
 	//	new_average, update_memory, av_write_addr, last_write
 	//
@@ -447,22 +526,26 @@ module	cheapspectral(i_clk, i_reset,
 	always @(posedge i_clk)
 	if (update_memory)
 		avmem[av_write_addr] <= new_average;
-
+	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//
 	// Handling the bus interaction
-	//
+	// {{{
 	////////////////////////////////////////////////////////////////////////
 	//
 	//
-	reg	[AB-1:0]	data_out;
 
 	assign	o_wb_stall = 1'b0;
 
+	// o_wb_ack
+	// {{{
 	initial	o_wb_ack = 1'b0;
 	always @(posedge i_clk)
 		o_wb_ack <= !i_reset && i_wb_stb;
+	// }}}
 
+	// data_out
+	// {{{
 	generate if (OPT_DBLBUFFER)
 	begin
 
@@ -475,7 +558,10 @@ module	cheapspectral(i_clk, i_reset,
 			data_out <= avmem[i_wb_addr];
 
 	end endgenerate
+	// }}}
 
+	// o_wb_data
+	// {{{
 	generate if (AB == DW)
 	begin : PERFECT_BITWIDTH
 
@@ -496,19 +582,22 @@ module	cheapspectral(i_clk, i_reset,
 		wire	unused;
 		assign	unused = &{ data_out[AB-DW-1:0] };
 	end endgenerate
+	// }}}
+	// }}}
 
-	// Keep verilator happy
+	// Keep Verilator happy
+	// {{{
 	// Verilator lint_off UNUSED
 	wire	unused;
 	assign	unused = &{ 1'b0, i_wb_cyc, i_wb_data, i_wb_sel };
 	// Verilator lint_on  UNUSED
-
+	// }}}
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 //
 // Formal property section
-//
+// {{{
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
@@ -527,7 +616,7 @@ module	cheapspectral(i_clk, i_reset,
 	////////////////////////////////////////////////////////////////////////
 	//
 	// Bus properties
-	//
+	// {{{
 	////////////////////////////////////////////////////////////////////////
 	//
 	//
@@ -545,11 +634,11 @@ module	cheapspectral(i_clk, i_reset,
 	always @(*)
 	if (i_wb_cyc)
 		assert(f_outstanding == (o_wb_ack ? 1:0));
-
+	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//
 	// Assumptions
-	//
+	// {{{
 	////////////////////////////////////////////////////////////////////////
 	//
 	//
@@ -587,7 +676,7 @@ module	cheapspectral(i_clk, i_reset,
 	if (!f_past_valid)
 		assume(f_avdata == 0);
 
-
+	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//
 	//
@@ -737,7 +826,7 @@ module	cheapspectral(i_clk, i_reset,
 	////////////////////////////////////////////////////////////////////////
 	//
 	// Cover checks
-	//
+	// {{{
 	////////////////////////////////////////////////////////////////////////
 	//
 	//
@@ -754,17 +843,18 @@ module	cheapspectral(i_clk, i_reset,
 
 	always @(*)
 		cover(o_int);
-
+	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//
 	// Careless/constraining assumptions
-	//
+	// {{{
 	////////////////////////////////////////////////////////////////////////
 	//
 	//
 	always @(*)
 	if (f_avdata[AB-1])
 		assume(&f_avdata[AB-1:AB-2]);
-
+	// }}}
 `endif
+// }}}
 endmodule

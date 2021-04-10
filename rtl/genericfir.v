@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
 // Filename: 	genericfir.v
-//
+// {{{
 // Project:	DSP Filtering Example Project
 //
 // Purpose:	Implement a high speed (1-output per clock), adjustable tap FIR
@@ -10,9 +10,9 @@
 //		Gisselquist Technology, LLC
 //
 ////////////////////////////////////////////////////////////////////////////////
-//
-// Copyright (C) 2017-2020, Gisselquist Technology, LLC
-//
+// }}}
+// Copyright (C) 2017-2021, Gisselquist Technology, LLC
+// {{{
 // This file is part of the DSP filtering set of designs.
 //
 // The DSP filtering designs are free RTL designs: you can redistribute them
@@ -29,39 +29,52 @@
 // along with these designs.  (It's in the $(ROOT)/doc directory.  Run make
 // with no target there if the PDF file isn't present.)  If not, see
 // <http://www.gnu.org/licenses/> for a copy.
-//
+// }}}
 // License:	LGPL, v3, as defined and found on www.gnu.org,
+// {{{
 //		http://www.gnu.org/licenses/lgpl.html
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
 //
 `default_nettype	none
-//
-module	genericfir(i_clk, i_reset, i_tap_wr, i_tap, i_ce, i_sample, o_result);
-	parameter		NTAPS=128, IW=12, TW=IW, OW=2*IW+7;
-	parameter [0:0]		FIXED_TAPS=0;
-	input	wire			i_clk, i_reset;
-	//
-	input	wire			i_tap_wr;	// Ignored if FIXED_TAPS
-	input	wire	[(TW-1):0]	i_tap;		// Ignored if FIXED_TAPS
-	//
-	input	wire			i_ce;
-	input	wire	[(IW-1):0]	i_sample;
-	output	wire	[(OW-1):0]	o_result;
+// }}}
+module	genericfir #(
+		// {{{
+		parameter		NTAPS=128, IW=12, TW=IW, OW=2*IW+7,
+		parameter [0:0]		FIXED_TAPS=0
+		// }}}
+	) (
+		// {{{
+		input	wire			i_clk, i_reset,
+		//
+		input	wire			i_tap_wr,	// Ignored if FIXED_TAPS
+		input	wire	[(TW-1):0]	i_tap,		// Ignored if FIXED_TAPS
+		//
+		input	wire			i_ce,
+		input	wire	[(IW-1):0]	i_sample,
+		output	wire	[(OW-1):0]	o_result
+		// }}}
+	);
 
+	// Local declarations
+	// {{{
 	wire	[(TW-1):0] tap		[NTAPS:0];
 	wire	[(TW-1):0] tapout	[NTAPS:0];
 	wire	[(IW-1):0] sample	[NTAPS:0];
 	wire	[(OW-1):0] result	[NTAPS:0];
 	wire		tap_wr;
 
+	genvar	k;
+	// }}}
+
 	// The first sample in our sample chain is the sample we are given
 	assign	sample[0]	= i_sample;
 	// Initialize the partial summing accumulator with zero
 	assign	result[0]	= 0;
 
-	genvar	k;
+	// Initialize filter memory
+	// {{{
 	generate
 	if(FIXED_TAPS)
 	begin
@@ -72,39 +85,50 @@ module	genericfir(i_clk, i_reset, i_tap_wr, i_tap, i_ce, i_sample, o_result);
 		assign	tap_wr = i_tap_wr;
 		assign	tap[0] = i_tap;
 	end
+	// }}}
 
 	for(k=0; k<NTAPS; k=k+1)
 	begin: FILTER
 
-		firtap #(.FIXED_TAPS(FIXED_TAPS),
-				.IW(IW), .OW(OW), .TW(TW),
-				.INITIAL_VALUE(0))
-			tapk(i_clk, i_reset,
-				// Tap update circuitry
-				tap_wr, tap[NTAPS-1-k], tapout[k],
-				// Sample delay line
-				i_ce, sample[k], sample[k+1],
-				// The output accumulator
-				result[k], result[k+1]);
+		firtap #(
+			// {{{
+			.FIXED_TAPS(FIXED_TAPS),
+			.IW(IW), .OW(OW), .TW(TW),
+			.INITIAL_VALUE(0)
+			// }}}
+		) tapk(
+			// {{{
+			i_clk, i_reset,
+			// Tap update circuitry
+			tap_wr, tap[NTAPS-1-k], tapout[k],
+			// Sample delay line
+			i_ce, sample[k], sample[k+1],
+			// The output accumulator
+			result[k], result[k+1]
+			// }}}
+		);
 
 		if (!FIXED_TAPS)
 			assign	tap[NTAPS-1-k] = tapout[k+1];
 
 		// Make verilator happy
+		// {{{
 		// verilator lint_off UNUSED
 		wire	[(TW-1):0]	unused_tap;
 		if (FIXED_TAPS)
 			assign	unused_tap    = tapout[k];
 		// verilator lint_on UNUSED
+		// }}}
 	end endgenerate
 
 	assign	o_result = result[NTAPS];
 
 	// Make verilator happy
+	// {{{
 	// verilator lint_off UNUSED
 	wire	[(TW):0]	unused;
 	assign	unused = { i_tap_wr, i_tap };
 	// verilator lint_on UNUSED
-
+	// }}}
 endmodule
 

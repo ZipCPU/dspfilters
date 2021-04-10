@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
 // Filename: 	cheapspectral_tb.cpp
-//
+// {{{
 // Project:	DSP Filtering Example Project
 //
 // Purpose:	To test a Verilog signal delay block, delayw.
@@ -10,9 +10,9 @@
 //		Gisselquist Technology, LLC
 //
 ////////////////////////////////////////////////////////////////////////////////
-//
-// Copyright (C) 2020, Gisselquist Technology, LLC
-//
+// }}}
+// Copyright (C) 2020-2021, Gisselquist Technology, LLC
+// {{{
 // This file is part of the DSP filtering set of designs.
 //
 // The DSP filtering designs are free RTL designs: you can redistribute them
@@ -29,13 +29,14 @@
 // along with these designs.  (It's in the $(ROOT)/doc directory.  Run make
 // with no target there if the PDF file isn't present.)  If not, see
 // <http://www.gnu.org/licenses/> for a copy.
-//
+// }}}
 // License:	LGPL, v3, as defined and found on www.gnu.org,
+// {{{
 //		http://www.gnu.org/licenses/lgpl.html
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-//
+// }}}
 #include <verilatedos.h>
 #include <stdio.h>
 #include <fcntl.h>
@@ -51,6 +52,8 @@
 
 #define	BASEFILE	"cheapspectral"
 
+// reset_core(TESTB<Vcheapspectral> *tb)
+// {{{
 void	reset_core(TESTB<Vcheapspectral> *tb) {
 	// reset our core before cycling it
 	tb->m_core->i_data_ce= 0;
@@ -59,7 +62,10 @@ void	reset_core(TESTB<Vcheapspectral> *tb) {
 	tb->m_core->i_wb_stb = 0;
 	tb->reset();
 }
+// }}}
 
+// clear_mem
+// {{{
 void	clear_mem(TESTB<Vcheapspectral> *tb, int lglags) {
 	// Clear all the memory, then reset again
 	for(int k=0; k<1+(1<<lglags); k++) {
@@ -69,7 +75,10 @@ void	clear_mem(TESTB<Vcheapspectral> *tb, int lglags) {
 	}
 	tb->m_core->i_data_ce = 0;
 }
+// }}}
 
+// request_start
+// {{{
 void	request_start(TESTB<Vcheapspectral> *tb) {
 	// Send a start request to the core
 	tb->m_core->i_wb_cyc  = 1;
@@ -85,7 +94,10 @@ void	request_start(TESTB<Vcheapspectral> *tb) {
 	tb->m_core->i_wb_cyc  = 0;
 	tb->m_core->i_wb_stb  = 0;
 }
+// }}}
 
+// wb_read
+// {{{
 int	wb_read(TESTB<Vcheapspectral> *tb, unsigned addr) {
 	tb->m_core->i_wb_cyc = 1;
 	tb->m_core->i_wb_stb = 1;
@@ -103,6 +115,7 @@ int	wb_read(TESTB<Vcheapspectral> *tb, unsigned addr) {
 	tb->m_core->i_wb_we  = 0;
 	return tb->m_core->o_wb_data;
 }
+// }}}
 
 int	main(int argc, char **argv) {
 	Verilated::commandArgs(argc, argv);
@@ -144,7 +157,7 @@ int	main(int argc, char **argv) {
 	////////////////////////////////////////////////////////////////////////
 	//
 	// Test #1: Uniform (not Gaussian) noise
-	//
+	// {{{
 	// Expected result: A peak at ADDR[&], much lower values everywhere else
 	//
 
@@ -169,11 +182,11 @@ int	main(int argc, char **argv) {
 		mem[k] = wb_read(&tb, k);
 
 	fwrite(mem, sizeof(int), lags, fdata);
-
+	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//
 	// Test #2: All zeros
-	//
+	// {{{
 	// Expected result: All zeros
 	//
 
@@ -205,11 +218,11 @@ int	main(int argc, char **argv) {
 				lags-1-k, mem[k]);
 			failed = true;
 		}
-
+	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//
 	// Test #3: All ones
-	//
+	// {{{
 	// Expected result: All values == LGNAVGS
 	//
 
@@ -242,11 +255,11 @@ int	main(int argc, char **argv) {
 				lags-1-k, mem[k], (navg)/(1<<shift));
 			failed = true;
 		}
-
+	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//
 	// Test #4: Alternating +/- 1
-	//
+	// {{{
 	// Expected result: All values are alternating +/- LGNAVGS
 	//
 	clear_mem(&tb, lglags);
@@ -284,11 +297,11 @@ int	main(int argc, char **argv) {
 			// failed = true;
 		}
 	}
-
+	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//
 	// Test #5: Alternating +/- 1, only slower--once per lag
-	//
+	// {{{
 	// Expected result: A square wave output, one waveform, having the
 	//	sign of a cosine
 	//
@@ -314,11 +327,11 @@ int	main(int argc, char **argv) {
 		mem[k] = wb_read(&tb, k);
 
 	fwrite(mem, sizeof(int), lags, fdata);
-
+	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//
 	// Test #6: a sinewave
-	//
+	// {{{
 	// Expected result: A cosine wave, with a peak at ADDR[&] (i.e. posn 0)
 	//
 
@@ -365,12 +378,11 @@ int	main(int argc, char **argv) {
 			// failed = true;
 		}
 	}
-
-
+	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//
 	// Test #7: a random binary waveform
-	//
+	// {{{
 	// Expected result: A ramp, ramping up from zero to a peak at ADDR[&]
 	//	and starting BAUD_CYCLES from the end
 	//
@@ -428,7 +440,7 @@ int	main(int argc, char **argv) {
 			failed = true;
 		}
 	}
-
+	// }}}
 
 
 	if (failed)

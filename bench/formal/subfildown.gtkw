@@ -1,0 +1,52 @@
+[*]
+[*] GTKWave Analyzer v3.3.66 (w)1999-2015 BSI
+[*] Sat Jul 25 22:51:00 2020
+[*]
+[dumpfile_mtime] "Sat Jul 25 22:49:48 2020"
+[dumpfile_size] 66314
+[timestart] 0
+[size] 1691 600
+[pos] -1 -1
+*-6.607276 0 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[sst_width] 196
+[signals_width] 142
+[sst_expanded] 1
+[sst_vpaned_height] 155
+@28
+subfildown.f_past_valid
+subfildown.i_clk
+subfildown.i_reset
+@200
+-
+@28
+subfildown.i_tap_wr
+@22
+subfildown.i_tap[11:0]
+@200
+-
+@28
+subfildown.i_ce
+@22
+subfildown.i_sample[15:0]
+@200
+-
+@28
+subfildown.first_sample
+subfildown.countdown[2:0]
+@200
+-
+@22
+subfildown.didx[4:0]
+subfildown.tidx[4:0]
+@200
+-
+@28
+subfildown.last_coeff
+subfildown.d_ce
+subfildown.d_last
+subfildown.p_ce
+subfildown.p_run
+subfildown.p_last
+subfildown.o_ce
+[pattern_trace] 1
+[pattern_trace] 0

@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
 // Filename:	fastfir_tb.cpp
-//
+// {{{
 // Project:	DSP Filtering Example Project
 //
 // Purpose:
@@ -10,9 +10,9 @@
 //		Gisselquist Technology, LLC
 //
 ////////////////////////////////////////////////////////////////////////////////
-//
-// Copyright (C) 2017-2020, Gisselquist Technology, LLC
-//
+// }}}
+// Copyright (C) 2017-2021, Gisselquist Technology, LLC
+// {{{
 // This file is part of the DSP filtering set of designs.
 //
 // The DSP filtering designs are free RTL designs: you can redistribute them
@@ -29,13 +29,14 @@
 // along with these designs.  (It's in the $(ROOT)/doc directory.  Run make
 // with no target there if the PDF file isn't present.)  If not, see
 // <http://www.gnu.org/licenses/> for a copy.
-//
+// }}}
 // License:	LGPL, v3, as defined and found on www.gnu.org,
+// {{{
 //		http://www.gnu.org/licenses/lgpl.html
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-//
+// }}}
 #include <signal.h>
 #include <time.h>
 #include <ctype.h>
@@ -59,6 +60,9 @@ const	unsigned	DELAY= 1; // bits
 
 class	FASTFIR_TB : public FILTERTB<Vfastfir> {
 public:
+
+	// FASTFIR_TB
+	// {{{
 	FASTFIR_TB(void) {
 		TW(::TW);
 		IW(::IW);
@@ -66,12 +70,15 @@ public:
 		NTAPS(::NTAPS);
 		DELAY(::DELAY);
 	}
+	// }}}
 
-
+	// trace
+	// {{{
 	void	trace(const char *vcd_trace_file_name) {
 		fprintf(stderr, "Opening TRACE(%s)\n", vcd_trace_file_name);
 		opentrace(vcd_trace_file_name);
 	}
+	// }}}
 };
 
 FASTFIR_TB	*tb;
@@ -106,6 +113,8 @@ int	main(int argc, char **argv) {
 		tb->trace("trace.vcd");
 	tb->reset();
 
+	// Impulse + overflow checks
+	// {{{
 	for(unsigned k=0; k<NTAPS; k++) {
 		//
 		// Create a new coefficient vector
@@ -123,10 +132,11 @@ int	main(int argc, char **argv) {
 		// Then test whether or not the filter overflows
 		tb->test_overflow();
 	}
+	// }}}
 
 	//
 	// Block filter, impulse input
-	//
+	// {{{
 	for(unsigned i=0; i<NTAPS; i++)
 		tapvec[i] = TAPVALUE;
 
@@ -140,10 +150,11 @@ int	main(int argc, char **argv) {
 
 	for(unsigned i=0; i<NTAPS; i++)
 		assert(ivec[i] == IMPULSE * TAPVALUE);
-
+	// }}}
 	//
 	//
 	// Block filter, block input
+	// {{{
 	// Set every element of an array to the same value
 	for(unsigned i=0; i<2*NTAPS; i++)
 		ivec[i] = IMPULSE;
@@ -174,6 +185,7 @@ int	main(int argc, char **argv) {
 		assert(depth < -13);
 		assert(depth > -14);
 	}
+	// }}}
 
 	assert(NCOEFFS < NTAPS);
 	for(int i=0; i<NCOEFFS; i++)

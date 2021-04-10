@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
 // Filename:	boxcar_fir.cpp
-//
+// {{{
 // Project:	DSP Filtering Example Project
 //
 // Purpose:
@@ -10,9 +10,9 @@
 //		Gisselquist Technology, LLC
 //
 ////////////////////////////////////////////////////////////////////////////////
-//
-// Copyright (C) 2017-2020, Gisselquist Technology, LLC
-//
+// }}}
+// Copyright (C) 2017-2021, Gisselquist Technology, LLC
+// {{{
 // This file is part of the DSP filtering set of designs.
 //
 // The DSP filtering designs are free RTL designs: you can redistribute them
@@ -29,13 +29,14 @@
 // along with these designs.  (It's in the $(ROOT)/doc directory.  Run make
 // with no target there if the PDF file isn't present.)  If not, see
 // <http://www.gnu.org/licenses/> for a copy.
-//
+// }}}
 // License:	LGPL, v3, as defined and found on www.gnu.org,
+// {{{
 //		http://www.gnu.org/licenses/lgpl.html
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-//
+// }}}
 #include <signal.h>
 #include <time.h>
 #include <ctype.h>
@@ -62,6 +63,8 @@ const	unsigned	DELAY = 3; // NTAPS-1; // bits
 #define	PARENTTB	FILTERTB<BASECLASS>
 class	BOXCAR_TB : public PARENTTB {
 public:
+	// BOXCAR_TB
+	// {{{
 	BOXCAR_TB(void) {
 		IW(::IW);
 		TW(::TW);
@@ -69,11 +72,17 @@ public:
 		NTAPS(::NTAPS);
 		DELAY(::DELAY);
 	}
+	// }}}
 
+	// reset()
+	// {{{
 	void	reset(void) {
 		PARENTTB::reset();
 	}
+	// }}}
 
+	// feed_rand()
+	// {{{
 	void	feed_rand(int nlen) {
 
 		PARENTTB::m_core->i_reset  = 0;
@@ -88,7 +97,10 @@ public:
 			tick();
 		}
 	}
+	// }}}
 
+	// feed_zeros()
+	// {{{
 	void	feed_zeros(int nlen) {
 
 		PARENTTB::m_core->i_reset  = 0;
@@ -100,11 +112,17 @@ public:
 			tick();
 		}
 	}
+	// }}}
 
+	// apply()
+	// {{{
 	void	apply(int nlen, int64_t *data) {
 		PARENTTB::apply(nlen, data);
 	}
+	// }}}
 
+	// load(nlen, data)
+	// {{{
 	void	load(int nlen, int64_t *data) {
 		PARENTTB::m_core->i_reset = 0;
 		PARENTTB::m_core->i_ce    = 0;
@@ -115,7 +133,10 @@ public:
 
 		PARENTTB::clear_cache();
 	}
+	// }}}
 
+	// testload
+	// {{{
 	void	testload(int nlen, int64_t *data) {
 		load(nlen, data);
 
@@ -130,15 +151,22 @@ public:
 			assert(0 == (*this)[k]);
 		}
 	}
+	// }}}
 
+	// test_overflow
+	// {{{
 	bool	test_overflow(void) {
 		return PARENTTB::test_overflow();
 	}
+	// }}}
 
+	// trace
+	// {{{
 	void	trace(const char *vcd_trace_file_name) {
 		fprintf(stderr, "Opening TRACE(%s)\n", vcd_trace_file_name);
 		opentrace(vcd_trace_file_name);
 	}
+	// }}}
 
 	// void	record(const char *record_file_name);
 };
@@ -155,12 +183,13 @@ int	main(int argc, char **argv) {
 
 	//
 	// Block filter, impulse input
-	//
+	// {{{
 	printf("Test #%3d /%3d\n", NTAPS+1, NTAPS+2);
 	for(unsigned i=1; i<NTAPS; i++) {
 		tb->testload(i, NULL);
 		tb->test_overflow();
 	}
+	// }}}
 
 	{
 		// tb->testload(NTAPS-1, NULL);		//

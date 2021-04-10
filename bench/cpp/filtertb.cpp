@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
 // Filename: 	filtertb.cpp
-//
+// {{{
 // Project:	DSP Filtering Example Project
 //
 // Purpose:	A generic filter testbench class
@@ -10,9 +10,9 @@
 //		Gisselquist Technology, LLC
 //
 ////////////////////////////////////////////////////////////////////////////////
-//
-// Copyright (C) 2017-2020, Gisselquist Technology, LLC
-//
+// }}}
+// Copyright (C) 2017-2021, Gisselquist Technology, LLC
+// {{{
 // This file is part of the DSP filtering set of designs.
 //
 // The DSP filtering designs are free RTL designs: you can redistribute them
@@ -29,16 +29,19 @@
 // along with these designs.  (It's in the $(ROOT)/doc directory.  Run make
 // with no target there if the PDF file isn't present.)  If not, see
 // <http://www.gnu.org/licenses/> for a copy.
-//
+// }}}
 // License:	LGPL, v3, as defined and found on www.gnu.org,
+// {{{
 //		http://www.gnu.org/licenses/lgpl.html
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-//
+// }}}
 #include <math.h>
 #include "filtertb.h"
 
+// sbits
+// {{{
 static uint64_t	sbits(uint64_t val, int b) {
 	int64_t	s;
 
@@ -46,13 +49,19 @@ static uint64_t	sbits(uint64_t val, int b) {
 	s >>= (sizeof(val)*8-b);
 	return	s;
 }
+// }}}
 
+// ubits
+// {{{
 static uint64_t ubits(uint64_t val, int b) {
 	uint64_t	one = 1;
 
 	return	val &= (one<<b)-one;
 }
+// }}}
 
+// tick
+// {{{
 template<class VFLTR> void	FILTERTB<VFLTR>::tick(void) {
 	bool	ce;
 	int64_t	vec[2];
@@ -67,7 +76,10 @@ template<class VFLTR> void	FILTERTB<VFLTR>::tick(void) {
 	if ((ce)&&(result_fp))
 		fwrite(vec, sizeof(int64_t), 2, result_fp);
 }
+// }}}
 
+// reset
+// {{{
 template<class VFLTR> void	FILTERTB<VFLTR>::reset(void) {
 	TESTB<VFLTR>::m_core->i_tap   = 0;
 	TESTB<VFLTR>::m_core->i_sample= 0;
@@ -78,7 +90,10 @@ template<class VFLTR> void	FILTERTB<VFLTR>::reset(void) {
 
 	TESTB<VFLTR>::m_core->i_reset = 0;
 }
+// }}}
 
+// apply
+// {{{
 template<class VFLTR> void	FILTERTB<VFLTR>::apply(int nlen, int64_t *data) {
 // printf("FILTERTB::apply(%d, ...)\n", nlen);
 	TESTB<VFLTR>::m_core->i_reset  = 0;
@@ -111,7 +126,10 @@ template<class VFLTR> void	FILTERTB<VFLTR>::apply(int nlen, int64_t *data) {
 	}
 	TESTB<VFLTR>::m_core->i_ce     = 0;
 }
+// }}}
 
+// load
+// {{{
 template<class VFLTR> void	FILTERTB<VFLTR>::load(int  ntaps, int64_t *data) {
 	TESTB<VFLTR>::m_core->i_reset = 0;
 	TESTB<VFLTR>::m_core->i_ce    = 0;
@@ -127,7 +145,10 @@ template<class VFLTR> void	FILTERTB<VFLTR>::load(int  ntaps, int64_t *data) {
 
 	clear_cache();
 }
+// }}}
 
+// test
+// {{{
 template<class VFLTR> void	FILTERTB<VFLTR>::test(int  nlen, int64_t *data) {
 	const	bool	debug = false;
 	assert(nlen > 0);
@@ -181,7 +202,10 @@ template<class VFLTR> void	FILTERTB<VFLTR>::test(int  nlen, int64_t *data) {
 	}
 	TESTB<VFLTR>::m_core->i_ce = 0;
 }
+// }}}
 
+// operator[]
+// {{{
 template<class VFLTR> int	FILTERTB<VFLTR>::operator[](const int tap) {
 
 	if ((tap < 0)||(tap >= 2*NTAPS()))
@@ -209,7 +233,10 @@ template<class VFLTR> int	FILTERTB<VFLTR>::operator[](const int tap) {
 
 	return m_hk[tap];
 }
+// }}}
 
+// testload
+// {{{
 template<class VFLTR> void	FILTERTB<VFLTR>::testload(int nlen, int64_t *data) {
 	bool	mismatch = false;
 	load(nlen, data);
@@ -232,7 +259,10 @@ template<class VFLTR> void	FILTERTB<VFLTR>::testload(int nlen, int64_t *data) {
 	for(int k=nlen; k<2*DELAY(); k++)
 		assert(0 == (*this)[k]);
 }
+// }}}
 
+// test_overflow
+// {{{
 template<class VFLTR> bool	FILTERTB<VFLTR>::test_overflow(void) {
 	int	nlen = 2*NTAPS();
 	int64_t	*input  = new int64_t[nlen],
@@ -276,7 +306,10 @@ template<class VFLTR> bool	FILTERTB<VFLTR>::test_overflow(void) {
 	delete[] output;
 	return (pass)&&(tested);
 }
+// }}}
 
+// response
+// {{{
 template<class VFLTR> void	FILTERTB<VFLTR>::response(int nfreq,
 		COMPLEX *rvec, double mag, const char *fname) {
 	int	nlen = NTAPS();
@@ -358,7 +391,10 @@ template<class VFLTR> void	FILTERTB<VFLTR>::response(int nfreq,
 		fclose(fp);
 	}
 }
+// }}}
 
+// measure_lowpass
+// {{{
 template<class VFLTR> void FILTERTB<VFLTR>::measure_lowpass(double &fp, double &fs,
 			double &depth, double &ripple) {
 	const	int	NLEN = 16*NTAPS();
@@ -422,3 +458,4 @@ printf("--------\n");
 	fp = fp / NLEN / 2.;
 	delete[]	data;
 }
+// }}}

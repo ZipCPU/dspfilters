@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
 // Filename: 	fastfir.v
-//
+// {{{
 // Project:	DSP Filtering Example Project
 //
 // Purpose:	Implement a high speed (1-output per clock), adjustable tap
@@ -13,9 +13,9 @@
 //		Gisselquist Technology, LLC
 //
 ////////////////////////////////////////////////////////////////////////////////
-//
-// Copyright (C) 2017-2020 Gisselquist Technology, LLC
-//
+// }}}
+// Copyright (C) 2017-2021 Gisselquist Technology, LLC
+// {{{
 // This file is part of the DSP filtering set of designs.
 //
 // The DSP filtering designs are free RTL designs: you can redistribute them
@@ -32,43 +32,55 @@
 // along with these designs.  (It's in the $(ROOT)/doc directory.  Run make
 // with no target there if the PDF file isn't present.)  If not, see
 // <http://www.gnu.org/licenses/> for a copy.
-//
+// }}}
 // License:	LGPL, v3, as defined and found on www.gnu.org,
+// {{{
 //		http://www.gnu.org/licenses/lgpl.html
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
 //
 `default_nettype	none
-//
-module	fastfir(i_clk, i_reset, i_tap_wr, i_tap, i_ce, i_sample, o_result);
+// }}}
+module	fastfir #(
+		// {{{
 `ifdef	FORMAL
-	parameter		NTAPS=16, IW=9, TW=IW, OW=2*IW+5;
+		parameter		NTAPS=16, IW=9, TW=IW, OW=2*IW+5,
 `else
-	parameter		NTAPS=128, IW=12, TW=IW, OW=2*IW+7;
+		parameter		NTAPS=128, IW=12, TW=IW, OW=2*IW+7,
 `endif
-	parameter [0:0]		FIXED_TAPS=0;
-	input	wire			i_clk, i_reset;
-	//
-	input	wire			i_tap_wr;	// Ignored if FIXED_TAPS
-	input	wire	[(TW-1):0]	i_tap;		// Ignored if FIXED_TAPS
-	//
-	input	wire			i_ce;
-	input	wire	[(IW-1):0]	i_sample;
-	output	wire	[(OW-1):0]	o_result;
+		parameter [0:0]		FIXED_TAPS=0
+		// }}}
+	) (
+		// {{{
+		input	wire			i_clk, i_reset,
+		//
+		input	wire			i_tap_wr,	// Ignored if FIXED_TAPS
+		input	wire	[(TW-1):0]	i_tap,		// Ignored if FIXED_TAPS
+		//
+		input	wire			i_ce,
+		input	wire	[(IW-1):0]	i_sample,
+		output	wire	[(OW-1):0]	o_result
+		// }}}
+	);
 
+	// Local declarations
+	// {{{
 	wire	[(TW-1):0] tap		[NTAPS:0];
 	wire	[(TW-1):0] tapout	[NTAPS:0];
 	wire	[(IW-1):0] sample	[NTAPS:0];
 	wire	[(OW-1):0] result	[NTAPS:0];
 	wire		tap_wr;
+	genvar	k;
+	// }}}
 
 	// The first sample in our sample chain is the sample we are given
 	assign	sample[0]	= i_sample;
 	// Initialize the partial summing accumulator with zero
 	assign	result[0]	= 0;
 
-	genvar	k;
+	// Initialize coefficients
+	// {{{
 	generate
 	if(FIXED_TAPS)
 	begin
@@ -79,52 +91,60 @@ module	fastfir(i_clk, i_reset, i_tap_wr, i_tap, i_ce, i_sample, o_result);
 		assign	tap_wr = i_tap_wr;
 		assign	tap[0] = i_tap;
 	end
+	// }}}
 
 	assign	tapout[0] = 0;
 
 	for(k=0; k<NTAPS; k=k+1)
 	begin: FILTER
 
-		firtap #(.FIXED_TAPS(FIXED_TAPS),
+		firtap #(
+			// {{{
+			.FIXED_TAPS(FIXED_TAPS),
 				.IW(IW), .OW(OW), .TW(TW),
-				.INITIAL_VALUE(0))
-			tapk(i_clk, i_reset,
-				// Tap update circuitry
-				tap_wr, tap[k], tapout[k+1],
-				// Sample delay line
+				.INITIAL_VALUE(0)
+			// }}}
+		) tapk(
+			// {{{
+			i_clk, i_reset,
+			// Tap update circuitry
+			tap_wr, tap[k], tapout[k+1],
+			// Sample delay line
 				// We'll let the optimizer trim away sample[k+1]
-				i_ce, sample[0], sample[k+1],
-				// The output accumulator
-				result[k], result[k+1]);
+			i_ce, sample[0], sample[k+1],
+			// The output accumulator
+			result[k], result[k+1]
+			// }}}
+		);
 
 		if (!FIXED_TAPS)
 			assign	tap[k+1] = tapout[k+1];
 
 		// Make verilator happy
+		// {{{
 		// verilator lint_off UNUSED
 		wire	[(TW-1):0]	unused_tap;
 		if (FIXED_TAPS)
 			assign	unused_tap    = tapout[k+1];
 		// verilator lint_on UNUSED
+		// }}}
 	end endgenerate
 
 	assign	o_result = result[NTAPS];
 
 	// Make verilator happy
+	// {{{
 	// verilator lint_off UNUSED
 	wire	[(TW):0]	unused;
 	assign	unused = { i_tap_wr, i_tap };
 	// verilator lint_on UNUSED
-
-`ifdef	FORMAL
-`define	PHASE_ONE_ASSERT	assert
-`define	PHASE_TWO_ASSERT	assert
+	// }}}
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 //
 // Formal verification section
-//
+// {{{
 // This only verifies that the filter produces the desired impulse response, and
 // not that it fully and properly acts as it should.
 //
@@ -138,6 +158,9 @@ module	fastfir(i_clk, i_reset, i_tap_wr, i_tap, i_ce, i_sample, o_result);
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
+`ifdef	FORMAL
+`define	PHASE_ONE_ASSERT	assert
+`define	PHASE_TWO_ASSERT	assert
 
 // `ifdef	PHASE_TWO
 // `undef	PHASE_ONE_ASSERT
@@ -187,7 +210,7 @@ module	fastfir(i_clk, i_reset, i_tap_wr, i_tap, i_ce, i_sample, o_result);
 	begin
 		f_is_impulse = 1'b0;
 		f_zeros = 5'h0;
-		if (f_impulse == { 1'b1, {(IW-1){1'b0}}})
+		if (f_impulse == { 1'b1, {(IW-1){1'b0}} })
 		begin
 			f_is_impulse = 1'b1;
 			f_zeros = IW-1;
@@ -312,14 +335,17 @@ module	fastfir(i_clk, i_reset, i_tap_wr, i_tap, i_ce, i_sample, o_result);
 	///////////////////////////////////////
 	always @(posedge i_clk)
 	if ((!f_past_valid)||($past(i_reset)))
+	begin
 		`PHASE_TWO_ASSERT(o_result == 0);
-	else if (!$past(i_ce))
+	end else if (!$past(i_ce))
+	begin
 		`PHASE_TWO_ASSERT($stable(o_result));
-	else if ((f_counts_since_impulse > 1)&&(f_counts_since_impulse <= NTAPS))
+	end else if ((f_counts_since_impulse > 1)&&(f_counts_since_impulse <= NTAPS))
 	begin
 		if (f_sign)
+		begin
 			`PHASE_TWO_ASSERT(o_result == (-tapout[NTAPS-(f_counts_since_impulse-2)]<<f_zeros));
-		else
+		end else
 			`PHASE_TWO_ASSERT(o_result == ( tapout[NTAPS-(f_counts_since_impulse-2)]<<f_zeros));
 	end
 
@@ -346,12 +372,14 @@ module	fastfir(i_clk, i_reset, i_tap_wr, i_tap, i_ce, i_sample, o_result);
 	for(m=0; m<NTAPS; m=m+1)
 	begin
 		if ((m >= (f_counts_since_impulse-2))&&(f_sign))
+		begin
 			`PHASE_TWO_ASSERT(result[m+1]
 				== (-staps[m-(f_counts_since_impulse-2)+1]));
-		else if (m >= (f_counts_since_impulse-2))
+		end else if (m >= (f_counts_since_impulse-2))
+		begin
 			`PHASE_TWO_ASSERT(result[m+1]
 				== (staps[m-(f_counts_since_impulse-2)+1]));
-		else
+		end else
 			`PHASE_TWO_ASSERT(result[m+1] == 0);
 	end
 	end
@@ -364,5 +392,7 @@ module	fastfir(i_clk, i_reset, i_tap_wr, i_tap, i_ce, i_sample, o_result);
 	if ((f_past_valid)&&($past(i_tap_wr)))
 		assume(i_reset);
 `endif // FORMAL
+
+// }}}
 endmodule
 

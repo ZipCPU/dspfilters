@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
 // Filename: 	subfildown.v
-//
+// {{{
 // Project:	FFT-DEMO, a verilator-based spectrogram display project
 //
 // Purpose:	This module implements a fairly generic 1/M downsampler.  It is
@@ -66,9 +66,9 @@
 //		Gisselquist Technology, LLC
 //
 ////////////////////////////////////////////////////////////////////////////////
-//
-// Copyright (C) 2018-2020, Gisselquist Technology, LLC
-//
+// }}}
+// Copyright (C) 2018-2021, Gisselquist Technology, LLC
+// {{{
 // This file is part of the DSP filtering set of designs.
 //
 // The DSP filtering designs are free RTL designs: you can redistribute them
@@ -85,8 +85,9 @@
 // along with these designs.  (It's in the $(ROOT)/doc directory.  Run make
 // with no target there if the PDF file isn't present.)  If not, see
 // <http://www.gnu.org/licenses/> for a copy.
-//
+// }}}
 // License:	LGPL, v3, as defined and found on www.gnu.org,
+// {{{
 //		http://www.gnu.org/licenses/lgpl.html
 //
 ////////////////////////////////////////////////////////////////////////////////
@@ -94,7 +95,7 @@
 //
 `default_nettype	none
 //
-//
+// }}}
 module	subfildown #(
 		// {{{
 		//
@@ -339,21 +340,27 @@ module	subfildown #(
 	//
 
 `ifdef	FORMAL
+	// {{{
+	// Verilator lint_off UNDRIVEN
 	(* anyseq *)	reg	signed [IW+CW-1:0]	f_abstract_product;
+	// Verilator lint_on  UNDRIVEN
 
 	always @(*)
 	begin
-		assume(f_abstract_product[IW+CW-1]== (dval[IW-1] ^ cval[CW-1]));
+		assume(f_abstract_product[IW-1]== (dval[IW-1] ^ cval[CW-1]));
 		if ((dval == 0)||(cval == 0))
+		begin
 			assume(f_abstract_product == 0);
-		else if (cval == 1)
-			assume(f_abstract_product == dval);
-		else if (dval == 1)
-			assume(f_abstract_product == cval);
+		end else if (cval == 1)
+		begin
+			assume(f_abstract_product == { {(CW){dval[IW-1]}}, dval });
+		end else if (dval == 1)
+			assume(f_abstract_product == { {(IW){cval[CW-1]}}, cval });
 	end
 
 	always @(posedge i_clk)
 		product <= f_abstract_product;
+	// }}}
 `else
 	(* mul2dsp *)
 	always @(posedge i_clk)

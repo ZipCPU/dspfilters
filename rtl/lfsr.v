@@ -1,6 +1,6 @@
 //////////////////////////////////////////////////////////////////////////////// //
 // Filename: 	lfsr.v
-//
+// {{{
 // Project:	DSP Filtering Example Project
 //
 // Purpose:	To generate WS bits of an LFSR at each clock step.  The LFSR
@@ -12,9 +12,9 @@
 //		Gisselquist Technology, LLC
 //
 ////////////////////////////////////////////////////////////////////////////////
-//
-// Copyright (C) 2017-2020, Gisselquist Technology, LLC
-//
+// }}}
+// Copyright (C) 2017-2021, Gisselquist Technology, LLC
+// {{{
 // This file is part of the DSP filtering set of designs.
 //
 // The DSP filtering designs are free RTL designs: you can redistribute them
@@ -31,8 +31,9 @@
 // along with these designs.  (It's in the $(ROOT)/doc directory.  Run make
 // with no target there if the PDF file isn't present.)  If not, see
 // <http://www.gnu.org/licenses/> for a copy.
-//
+// }}}
 // License:	LGPL, v3, as defined and found on www.gnu.org,
+// {{{
 //		http://www.gnu.org/licenses/lgpl.html
 //
 ////////////////////////////////////////////////////////////////////////////////
@@ -42,15 +43,20 @@
 `ifdef	VERILATOR
 `define	WORKS_WITH_VERILATOR
 `endif
-//
-module	lfsr(i_clk, i_reset, i_ce, o_word);
-	parameter		WS=24,	// Number of output bits per clock
-				LN=8;	// LFSR Register length/polynomial deg
-	parameter [(LN-1):0]	TAPS = 8'h2d,
-				INITIAL_FILL = { { (LN-1){1'b0}}, 1'b1 };
-	//
-	input	wire			i_clk, i_reset, i_ce;
-	output	wire	[(WS-1):0]	o_word;
+// }}}
+module	lfsr #(
+		// {{{
+		parameter	WS=24,	// Number of output bits per clock
+				LN=8,	// LFSR Register length/polynomial deg
+		parameter [(LN-1):0]	TAPS = 8'h2d,
+				INITIAL_FILL = { { (LN-1){1'b0}}, 1'b1 }
+		// }}}
+	) (
+		// {{{
+		input	wire			i_clk, i_reset, i_ce,
+		output	wire	[(WS-1):0]	o_word
+		// }}}
+	);
 
 	reg	[(LN+WS-2):0]	sreg;
 
@@ -102,36 +108,47 @@ module	lfsr(i_clk, i_reset, i_ce, o_word);
 	end endgenerate
 `endif
 
+	// sreg
+	// {{{
 	// Step the actual shift register.  First, step the shifted parts of
 	// the register
-	//
+	// {{{
 `ifdef	WORKS_WITH_VERILATOR
 	initial	sreg = reset_value;
 `else
 	initial	sreg = (INITIAL_FILL<<WS);
 `endif
 	always @(posedge i_clk)
-		if (i_reset)
-			sreg[(LN-2):0] <= reset_value[(LN-2):0];
-		else if (i_ce)
-			sreg[(LN-2):0] <= sreg[(LN+WS-2):WS];
+	if (i_reset)
+		sreg[(LN-2):0] <= reset_value[(LN-2):0];
+	else if (i_ce)
+		sreg[(LN-2):0] <= sreg[(LN+WS-2):WS];
+	// }}}
 
-	//
 	// Then calculate the parts that are not shifted.
-	//
+	// {{{
 	generate
 	for(k=0; k<WS; k = k+1)
 	begin : RUN_LFSR
 		always @(posedge i_clk)
-			if (i_reset)
-				sreg[LN+k-1] <= reset_value[LN+k-1];
-			else if (i_ce)
-				sreg[(LN+k-1)] <=
-					^(sreg[(LN+WS-2):(WS-1)]&tapv[k]);
+		if (i_reset)
+			sreg[LN+k-1] <= reset_value[LN+k-1];
+		else if (i_ce)
+			sreg[(LN+k-1)] <= ^(sreg[(LN+WS-2):(WS-1)]&tapv[k]);
 	end endgenerate
+	// }}}
+	// }}}
 
 	assign	o_word = sreg[(WS-1):0];
-
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+//
+// Formal properties
+// {{{
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 `ifdef	FORMAL
 
 `ifdef	LFSR
@@ -146,8 +163,8 @@ module	lfsr(i_clk, i_reset, i_ce, o_word);
 		f_past_valid = 1'b1;
 
 	always @(posedge i_clk)
-		if ((f_past_valid)&&($past(i_reset)))
-			assert(sreg[(LN-1):0] == INITIAL_FILL);
+	if ((f_past_valid)&&($past(i_reset)))
+		assert(sreg[(LN-1):0] == INITIAL_FILL);
 
 	//
 	// We should be able to re-apply our transform, as defined by TAPS,
@@ -156,14 +173,13 @@ module	lfsr(i_clk, i_reset, i_ce, o_word);
 
 	// First, for the last bit out
 	always @(posedge i_clk)
-		if ((f_past_valid)&&(!$past(i_reset))&&($past(i_ce)))
-			assert(sreg[LN-1]
-				== ^({sreg[(LN-2):0], $past(sreg[WS-1])}
+	if ((f_past_valid)&&(!$past(i_reset))&&($past(i_ce)))
+		assert(sreg[LN-1] == ^({sreg[(LN-2):0], $past(sreg[WS-1])}
 					& TAPS));
 	generate
 	for(k=0; k<WS-1; k=k+1)
 		always @(posedge i_clk)
-			if ((f_past_valid)&&(!$past(i_reset)))
+		if ((f_past_valid)&&(!$past(i_reset)))
 			assert(sreg[LN+k] == ^(sreg[(LN-1+k):k]&TAPS));
 	endgenerate
 
@@ -173,4 +189,5 @@ module	lfsr(i_clk, i_reset, i_ce, o_word);
 		assert(sreg[(LN+WS-2):(WS-1)] != 0);
 
 `endif
+// }}}
 endmodule
