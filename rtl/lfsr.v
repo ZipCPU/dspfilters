@@ -61,7 +61,7 @@ module	lfsr #(
 	reg	[(LN+WS-2):0]	sreg;
 
 	// Precompute the stepping matrix for k-steps into the future, k<WS.
-	// See https://groupgs.google.com/forum/#!topic/sci.crypt/DRrBi2tMocI
+	// See https://groups.google.com/forum/#!topic/sci.crypt/DRrBi2tMocI
 	//
 	// As for our method, make the synthesis tool do our work for us.  This
 	// works because we are giving the tool constants, and expressions
