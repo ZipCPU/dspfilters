@@ -9,7 +9,7 @@ prf: depth 4
 smtbmc boolector
 
 [script]
-read -formal -D LFSR -formal lfsr.v
+read -formal -formal lfsr.v
 prep -top lfsr
 # clk2fflogic
 
