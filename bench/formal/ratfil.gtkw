@@ -1,0 +1,106 @@
+[*]
+[*] GTKWave Analyzer v3.3.103 (w)1999-2019 BSI
+[*] Fri Oct 15 12:26:21 2021
+[*]
+[dumpfile_mtime] "Fri Oct 15 12:17:40 2021"
+[dumpfile_size] 153883
+[timestart] 0
+[size] 1835 915
+[pos] -1 -1
+*-6.209311 260 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[sst_width] 329
+[signals_width] 206
+[sst_expanded] 1
+[sst_vpaned_height] 241
+@28
+ratfil.S_AXI_ACLK
+ratfil.S_AXI_ARESETN
+@200
+-
+@28
+ratfil.i_tap_wr
+@22
+ratfil.i_tap[11:0]
+@200
+-
+@28
+[color] 3
+ratfil.S_AXI_TVALID
+[color] 2
+ratfil.S_AXI_TREADY
+@22
+[color] 3
+ratfil.S_AXI_TDATA[11:0]
+@28
+[color] 3
+ratfil.S_AXI_TLAST
+@200
+-
+@28
+ratfil.skd_valid
+ratfil.skd_ready
+@22
+ratfil.skd_data[11:0]
+@28
+ratfil.skd_last
+@200
+-
+@28
+[color] 2
+ratfil.M_AXI_TVALID
+[color] 3
+ratfil.M_AXI_TREADY
+@22
+[color] 2
+ratfil.M_AXI_TDATA[11:0]
+@28
+[color] 2
+ratfil.M_AXI_TLAST
+@200
+-
+@28
+ratfil.skip_run
+@200
+-
+@28
+ratfil.read_enable
+ratfil.p_enable
+ratfil.acc_enable
+@200
+-
+@28
+ratfil.idx_load
+ratfil.mem_load
+ratfil.product_load
+ratfil.acc_load
+ratfil.output_load
+@200
+-
+@29
+ratfil.idx_last
+@28
+ratfil.mem_last
+ratfil.product_last
+ratfil.acc_last
+ratfil.output_last
+@200
+-
+@22
+ratfil.wraddr[5:0]
+ratfil.cidx[7:0]
+ratfil.didx[5:0]
+ratfil.cval[11:0]
+ratfil.dval[11:0]
+ratfil.product[23:0]
+@200
+-
+@28
+ratfil.mem_stalled
+ratfil.product_stalled
+ratfil.acc_stalled
+@22
+ratfil.informal_product[23:0]
+@28
+ratfil.skip_run
+[pattern_trace] 1
+[pattern_trace] 0
