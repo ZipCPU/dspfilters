@@ -63,7 +63,7 @@ module	boxwrapper #(
 		parameter	IW=16,			// Input width
 				LGMEM=6,		// Log_2 mem size
 				OW=(IW+LGMEM),		// Output width
-				NTAPS=(1<<LGMEM),	// Num taps
+				// NTAPS=(1<<LGMEM),	// Num taps
 				TW=LGMEM
 		// }}}
 	) (
@@ -108,12 +108,13 @@ module	boxwrapper #(
 		navg, i_ce, i_sample, o_result
 		// }}}
 	);
+	// }}}
 
 	// Make verilator happy
 	// {{{
 	// verilator lint_off UNUSED
 	wire	unused;
-	assign	unused = { 1'b0, i_tap };
+	assign	unused = &{ 1'b0, i_tap };
 	// verilator lint_on  UNUSED
 // }}}
 endmodule
