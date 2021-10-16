@@ -46,11 +46,12 @@ all:
 FBDIR := .
 VDIRFB:= $(FBDIR)/obj_dir
 VERILATOR := verilator
-VFLAGS := -O3 -Wall -MMD -trace -cc
+VFLAGS := -O3 -Wall -MMD -DVERILATORTB -trace -cc
 SUBMAKE := make --no-print-directory -C
-CORES := smplfir iiravg genericfir fastfir boxcar lfsr_gal lfsr_fib delayw lfsr slowfil slowsymf shalfband slowfil_srl subfildown histogram cheapspectral
+CORES := smplfir iiravg genericfir fastfir boxcar lfsr_gal lfsr_fib delayw lfsr slowfil slowsymf shalfband slowfil_srl subfildown histogram cheapspectral ratfil
 .PHONY: all $(CORES)
 all: $(CORES) # symfil
+.DELETE_ON_ERROR:
 
 ## Abbreviations
 ## {{{
@@ -71,6 +72,7 @@ delayw:		$(VDIRFB)/Vdelayw__ALL.a
 histogram:	$(VDIRFB)/Vhistogram__ALL.a
 subfildown:	$(VDIRFB)/Vsubfildown__ALL.a
 cheapspectral:	$(VDIRFB)/Vcheapspectral__ALL.a
+ratfil:		$(VDIRFB)/Vratfil__ALL.a
 ## }}}
 
 $(VDIRFB)/V%.cpp $(VDIRFB)/V%.h $(VDIRFB)/V%.mk: $(FBDIR)/%.v
