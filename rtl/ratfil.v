@@ -67,8 +67,19 @@ module ratfil #(
 		// }}}
 	) (
 		// {{{
+`ifdef	VERILATORTB
+		input	wire			i_clk,
+		input	wire			i_reset,
+		output	wire	[31:0]		o_IW,
+		output	wire	[31:0]		o_OW,
+		output	wire	[31:0]		o_NCOEFFS,
+		output	wire	[31:0]		o_NUP,
+		output	wire	[31:0]		o_NDOWN,
+		output	wire	[31:0]		o_LGGAIN,
+`else
 		input	wire			S_AXI_ACLK,
 		input	wire			S_AXI_ARESETN,
+`endif
 		// Filter adjustment
 		// {{{
 		input	wire			i_tap_wr,
@@ -132,6 +143,19 @@ module ratfil #(
 					product_last, acc_last;
 
 	wire	mem_stalled, product_stalled, acc_stalled;
+
+`ifdef	VERILATORTB
+	assign	S_AXI_ACLK = i_clk
+	assign	S_AXI_ARESETN = !i_reset;
+
+	assign	o_IW      = IW;
+	assign	o_TW      = TW;
+	assign	o_OW      = OW;
+	assign	o_NCOEFFS = NCOEFFS;
+	assign	o_NUP     = NUP;
+	assign	o_NDOWN   = NDOWN;
+	assign	o_LGGAIN  = LGGAIN;
+`endif
 	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//
