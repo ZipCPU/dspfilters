@@ -12,7 +12,7 @@
 %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% }}}
-%% Copyright (C) 2017-2021, Gisselquist Technology, LLC
+%% Copyright (C) 2017-2022, Gisselquist Technology, LLC
 %% {{{
 %% This file is part of the DSP filtering set of designs.
 %%

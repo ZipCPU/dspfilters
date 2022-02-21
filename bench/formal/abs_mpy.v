@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
 // Filename:	abs_mpy.v
-//
+// {{{
 // Project:	DSP Filtering Example Project
 //
 // Purpose:	This code has been modified from the mpyop.v file so as to
@@ -15,9 +15,9 @@
 //		Gisselquist Technology, LLC
 //
 ////////////////////////////////////////////////////////////////////////////////
-//
-// Copyright (C) 2015-2019, Gisselquist Technology, LLC
-//
+// }}}
+// Copyright (C) 2015-2022, Gisselquist Technology, LLC
+// {{{
 // This file is part of the DSP filtering set of designs.
 //
 // The DSP filtering designs are free RTL designs: you can redistribute them
@@ -34,36 +34,48 @@
 // along with these designs.  (It's in the $(ROOT)/doc directory.  Run make
 // with no target there if the PDF file isn't present.)  If not, see
 // <http://www.gnu.org/licenses/> for a copy.
-//
+// }}}
 // License:	LGPL, v3, as defined and found on www.gnu.org,
+// {{{
 //		http://www.gnu.org/licenses/lgpl.html
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-//
 `default_nettype	none
-//
-module	abs_mpy(i_clk,i_reset, i_a, i_b, o_result);
-	parameter	AW = 32, BW=32;
-	parameter [0:0]	OPT_SIGNED = 1'b1;
-	input	wire			i_clk, i_reset;
-	input	wire	[(AW-1):0]	i_a;
-	input	wire	[(BW-1):0]	i_b;
-	output	wire	[(AW+BW-1):0]	o_result;
+// }}}
+module	abs_mpy #(
+		// {{{
+		parameter	AW = 32, BW=32,
+		parameter [0:0]	OPT_SIGNED = 1'b1
+		// }}}
+	) (
+		// {{{
+		input	wire			i_clk, i_reset,
+		input	wire	[(AW-1):0]	i_a,
+		input	wire	[(BW-1):0]	i_b,
+		output	wire	[(AW+BW-1):0]	o_result
+		// }}}
+	);
 
+	// Local declarations
+	// {{{
 	wire	[(AW+BW-1):0]	any_result;
 	assign	any_result = $anyseq;
 
 	reg	[AW-1:0]	u_a;
 	reg	[BW-1:0]	u_b;
+	reg	[(AW+BW-1):0]	u_result;
+	// }}}
 
+	// u_a, u_b : unsigned copies of the input values
+	// {{{
 	always @(*)
 	begin
 		u_a = ((i_a[AW-1])&&(OPT_SIGNED)) ? -i_a : i_a;
 		u_b = ((i_b[BW-1])&&(OPT_SIGNED)) ? -i_b : i_b;
 	end
+	// }}}
 
-	reg	[(AW+BW-1):0]	u_result;
 	always @(*)
 	if ((OPT_SIGNED)&&(any_result[AW+BW-1]))
 		u_result = - { 1'b1, any_result };

@@ -1,7 +1,7 @@
 ################################################################################
 ##
 ## Filename: 	Makefile
-##
+## {{{
 ## Project:	DSP Filtering Example Project
 ##
 ## Purpose:	To coordinate the build of documentation PDFs from their
@@ -17,9 +17,9 @@
 ##		Gisselquist Technology, LLC
 ##
 ################################################################################
-##
-## Copyright (C) 2017-2020, Gisselquist Technology, LLC
-##
+## }}}
+## Copyright (C) 2017-2021, Gisselquist Technology, LLC
+## {{{
 ## This file is part of the DSP filtering set of designs.
 ##
 ## The DSP filtering designs are free RTL designs: you can redistribute them
@@ -36,19 +36,21 @@
 ## along with these designs.  (It's in the $(ROOT)/doc directory.  Run make
 ## with no target there if the PDF file isn't present.)  If not, see
 ## <http://www.gnu.org/licenses/> for a copy.
-##
+## }}}
 ## License:	LGPL, v3, as defined and found on www.gnu.org,
+## {{{
 ##		http://www.gnu.org/licenses/lgpl.html
 ##
 ################################################################################
 ##
-##
+## }}}
 all:	lgpl
 pdf:	lgpl
 DSRC := src
 LICENSE := lgpl-3.0
 
 .PHONY: lgpl
+## {{{
 lgpl: $(LICENSE).pdf
 
 $(LICENSE).pdf: $(DSRC)/$(LICENSE).tex
@@ -57,12 +59,14 @@ $(LICENSE).pdf: $(DSRC)/$(LICENSE).tex
 	dvips -q -z -t letter -P pdf -o $(LICENSE).ps $(LICENSE).dvi
 	ps2pdf -dAutoRotatePages=/All $(LICENSE).ps $(LICENSE).pdf
 	rm $(LICENSE).dvi $(LICENSE).log $(LICENSE).aux $(LICENSE).ps
+## }}}
 
 .PHONY: clean
+## {{{
 clean:
 	rm -f $(DSRC)/*.dvi $(DSRC)/*.log
 	rm -f $(DSRC)/*.aux $(DSRC)/*.toc
 	rm -f $(DSRC)/*.lot $(DSRC)/*.lof
 	rm -f $(DSRC)/*.out spec.ps spec.pdf
 	rm -f $(LICENSE).pdf
-
+## }}}

@@ -144,7 +144,24 @@ module	histogram #(
 	// {{{
 	wire			clk, reset, bus_write, read_stall;
 	wire	[AW-1:0]	bus_read_addr;
-	reg			pre_ack;
+	reg	[1:0]		pre_ack;
+
+	// Register wire declarations
+	// {{{
+	reg	[ACCW-1:0]		count;
+	reg	[ACCW-1:0]		mem	[0:MEMSZ-1];
+	reg				start_reset, resetpipe, activemem,
+					first_reset_clock;
+	reg	[2:0]			cepipe;
+	reg	[ACCW-1:0]		memval_raw, memnew, bypass_data;
+	wire	[ACCW-1:0]		memval;
+	reg	[AW:0]			r_sample, memaddr;
+	reg	[AW:0]			read_addr;
+
+	reg				bypass_active;
+	reg	[ACCW-1:0]		bypass_value;
+	// }}}
+
 `ifdef	AXILITE
 	// {{{
 	// Verilator lint_off UNUSED
@@ -218,25 +235,26 @@ module	histogram #(
 			.o_data({ skd_araddr, skd_arprot })
 	);
 
-	initial	pre_ack = 1'b0;
+	initial	pre_ack = 2'b0;
 	always @(posedge clk)
 	if (!S_AXI_ARESETN)
-		pre_ack <= 1'b0;
+		pre_ack <= 2'b0;
 	else
-		pre_ack <= axil_read_ready;
+		pre_ack <= { pre_ack[0], axil_read_ready };
 
 	initial	rvalid = 0;
 	always @(posedge S_AXI_ACLK)
 	if (!S_AXI_ARESETN)
 		rvalid <= 1'b0;
-	else if (pre_ack)
+	else if (pre_ack[1])
 		rvalid <= 1'b1;
 	else if (S_AXI_RREADY)
 		rvalid <= 1'b0;
 
 	assign	S_AXI_RVALID = rvalid;
 	assign	read_stall = i_ce && !resetpipe;
-	assign	axil_read_ready = !pre_ack && (!S_AXI_RVALID || S_AXI_RREADY)
+	assign	axil_read_ready = pre_ack == 0
+				&& (!S_AXI_RVALID || S_AXI_RREADY)
 				&& !read_stall && skd_arvalid;
 	assign	bus_read_addr = skd_araddr[AW+ADDRLSB-1:ADDRLSB];
 	// }}}
@@ -254,19 +272,6 @@ module	histogram #(
 `endif
 	// }}}
 
-	// Register wire declarations
-	// {{{
-	reg	[ACCW-1:0]		count;
-	reg	[ACCW-1:0]		mem	[0:MEMSZ-1];
-	reg				start_reset, resetpipe, activemem,
-					first_reset_clock;
-	reg	[3:0]			cepipe;
-	reg	[ACCW-1:0]		memval, memnew, bypass_data;
-	reg	[AW:0]			r_sample, memaddr, bypass_addr;
-	reg	[AW:0]			read_addr;
-	// }}}
-
-	//
 	// Zero out our memory initially
 	// {{{
 `ifndef	FORMAL
@@ -359,9 +364,9 @@ module	histogram #(
 	initial	cepipe = 0;
 	always @(posedge clk)
 	if (resetpipe)
-		cepipe <= 4'b0100;
+		cepipe <= 3'b100;
 	else
-		cepipe <= { cepipe[2:0], i_ce };
+		cepipe <= { cepipe[1:0], i_ce };
 	// }}}
 
 	//
@@ -377,8 +382,17 @@ module	histogram #(
 	//
 	// Cycle two: Read from memory, keep track of the address
 	// {{{
+	// Mimic a write-through memory
 	always @(posedge clk)
-		memval <= mem[read_addr];
+		memval_raw <= mem[read_addr];
+
+	always @(posedge clk)
+		bypass_value <= memnew;
+
+	always @(posedge clk)
+		bypass_active <= cepipe[2] && (read_addr == memaddr);
+
+	assign	memval = (bypass_active) ? bypass_value : memval_raw;
 
 	always @(posedge clk)
 		r_sample <= read_addr;
@@ -413,10 +427,6 @@ module	histogram #(
 		// written to memory yet
 		if (cepipe[2] && r_sample == memaddr)
 			memnew  <= memnew + 1;
-		// OR ... we're writing it to memory now, and it'll still take
-		// another clock cycle to read it back out.
-		else if (cepipe[3] && r_sample == bypass_addr)
-			memnew  <= bypass_data + 1;
 	end
 	// }}}
 
@@ -426,16 +436,6 @@ module	histogram #(
 	always @(posedge clk)
 	if (cepipe[2])
 		mem[memaddr] <= memnew;
-	// }}}
-
-	//
-	// bypass_[data|addr]: Keep track of data necessary to bypass the memory
-	// {{{
-	always @(posedge clk)
-	begin
-		bypass_data <= memnew;
-		bypass_addr <= memaddr; 
-	end
 	// }}}
 
 	////////////////////////////////////////////////////////////////////////
@@ -449,7 +449,7 @@ module	histogram #(
 `ifdef	AXILITE
 	// {{{
 	always @(posedge S_AXI_ACLK)
-	if (pre_ack)
+	if (pre_ack[1])
 	begin
 		S_AXI_RDATA <= 0;
 		S_AXI_RDATA[ACCW-1:0] <= memval;
@@ -459,7 +459,7 @@ module	histogram #(
 	// }}}
 `else
 	// {{{
-	always @(*)
+	always @(posedge i_clk)
 	begin
 		o_wb_data = 0;
 		o_wb_data[ACCW-1:0] = memval; // mem[{ !activemem, i_wb_addr }];
@@ -467,9 +467,13 @@ module	histogram #(
 
 	initial { o_wb_ack, pre_ack } = 0;
 	always @(posedge clk)
-		pre_ack <= !reset && i_wb_stb && !o_wb_stall;
+	if (reset || !i_wb_cyc)
+		pre_ack <= 0;	
+	else
+		pre_ack <= { pre_ack[1:0], i_wb_stb && !o_wb_stall };
+
 	always @(posedge clk)
-		o_wb_ack <= !reset && i_wb_cyc && pre_ack;
+		o_wb_ack <= !reset && i_wb_cyc && pre_ack[1];
 
 	always @(*)
 		o_wb_stall = read_stall;
@@ -482,7 +486,8 @@ module	histogram #(
 	// Verilator lint_off UNUSED
 	wire	unused;
 `ifdef	AXILITE
-	assign	unused = &{ 1'b0, skd_awprot, skd_arprot, skd_araddr[ADDRLSB-1:0] };
+	assign	unused = &{ 1'b0, skd_awprot, skd_arprot,
+					skd_araddr[ADDRLSB-1:0] };
 `else
 	assign	unused = &{ 1'b0, i_wb_cyc, i_wb_data, i_wb_sel };
 `endif
@@ -504,7 +509,7 @@ module	histogram #(
 	(* anyconst *)	reg [AW:0]	f_addr;
 	// Verilator lint_on  UNDRIVEN
 			reg [ACCW-1:0]	f_mem_data, f_this_counts;
-	reg	[3:0]	f_this_pipe;
+	reg	[2:0]	f_this_pipe;
 
 	reg	f_past_valid;
 	initial	f_past_valid = 0;
@@ -549,7 +554,6 @@ module	histogram #(
 		.i_axi_awready(S_AXI_AWREADY),
 		.i_axi_awaddr(S_AXI_AWADDR),
 		.i_axi_awprot(S_AXI_AWPROT),
-		.i_axi_awcache(4'h0),
 		// }}}
 		// W
 		// {{{
@@ -570,7 +574,6 @@ module	histogram #(
 		.i_axi_arready(S_AXI_ARREADY),
 		.i_axi_araddr(S_AXI_ARADDR),
 		.i_axi_arprot(S_AXI_ARPROT),
-		.i_axi_arcache(4'h0),
 		// }}}
 		// R
 		// {{{
@@ -614,7 +617,7 @@ module	histogram #(
 	always @(*)
 	if (i_wb_cyc)
 		assert(fwb_outstanding == (o_wb_ack ? 1:0)
-				+ (pre_ack ? 1:0));
+				+ (pre_ack[0] ? 1:0) + (pre_ack[1] ? 1:0));
 	// }}}
 `endif
 	// }}}
@@ -651,10 +654,10 @@ module	histogram #(
 	// For tracking bypass issues, keep track of when our special
 	// value is written to
 	//
-	initial	f_this_pipe = 4'b000;
+	initial	f_this_pipe = 3'b000;
 	always @(posedge clk)
 	begin
-		f_this_pipe <= { f_this_pipe[2:0], (!start_reset && i_ce
+		f_this_pipe <= { f_this_pipe[1:0], (!start_reset && i_ce
 				&& activemem == f_addr[AW]
 				&& i_sample == f_addr[AW-1:0]) };
 
@@ -667,20 +670,24 @@ module	histogram #(
 	//
 	always @(*)
 	if (resetpipe && !first_reset_clock)
-		assert(f_this_pipe[3:1] == 0);
+		assert(f_this_pipe[2:1] == 0);
 
 	always @(*)
 	if (resetpipe && activemem == f_addr[AW])
 	begin
 		assert(first_reset_clock || f_this_counts == 0);
-	end else if (f_this_pipe[3:1] == 0)
+	end else if (f_this_pipe[2:1] == 0)
 		assert(f_this_counts == f_mem_data);
 
 	//
 	// Check operand forwarding
 	// {{{
 	always @(posedge clk)
-	if (f_this_pipe[3:1] == 3'b001)
+	if (f_this_pipe[2:1] == 2'b01)
+		assert(memval == $past(f_this_counts,2));
+
+	always @(posedge clk)
+	if (f_this_pipe[2:1] == 2'b01)
 		assert(memval == $past(f_this_counts,2));
 
 	always @(posedge clk)
@@ -690,14 +697,6 @@ module	histogram #(
 	always @(posedge clk)
 	if (f_this_pipe[2] && !first_reset_clock)
 		assert(memnew <= f_this_counts);
-
-	always @(posedge clk)
-	if (f_this_pipe[3])
-	begin
-		assert(bypass_data == $past(f_this_counts,2));
-		assert(bypass_addr == f_addr);
-		assert(f_mem_data == bypass_data);
-	end
 	// }}}
 
 	//
@@ -723,6 +722,80 @@ module	histogram #(
 	always @(*)
 	if (!resetpipe)
 		assert((f_this_pipe & cepipe) == f_this_pipe);
+
+	// Formally verify that any read returns the correct value
+`ifdef	AXILITE
+	// {{{
+	reg	[2:0]	f_read_sequence;
+
+	always @(posedge clk)
+	if (reset)
+		f_read_sequence <= 0;
+	else if (!S_AXI_RVALID || S_AXI_RREADY)
+	begin
+		f_read_sequence[2:0] <= { f_read_sequence[1:0], 1'b0 };
+		// read_addr <= { !activemem, bus_read_addr };
+		if (axil_read_ready && ({ !activemem, skd_araddr[AW+ADDRLSB-1:ADDRLSB] } == f_addr))
+		begin
+			f_read_sequence[0] <= 1'b1;
+			assume($stable(activemem));
+		end
+	end
+
+	always @(posedge clk)
+	if (!reset)
+	begin
+		if (pre_ack != 0)
+		begin
+			assert(pre_ack == 2'b01 || pre_ack == 2'b10);
+			assert(!S_AXI_RVALID);
+		end else
+			assert(f_read_sequence[1:0] == 0);
+
+		if (f_read_sequence[0])
+			assert(pre_ack[0] && read_addr == f_addr);
+		if (f_read_sequence[2])
+		begin
+			assert(S_AXI_RVALID);
+			if ($rose(f_read_sequence[2]))
+			begin
+				assert(S_AXI_RDATA == f_mem_data);
+			end else begin
+				assert($stable(S_AXI_RDATA));
+			end
+		end
+	end
+	// }}}
+`else
+	// {{{
+	reg	[2:0]	f_read_sequence;
+
+	always @(posedge clk)
+	if (reset || !i_wb_cyc)
+		f_read_sequence <= 0;
+	else begin
+		f_read_sequence[2:0] <= { f_read_sequence[1:0], 1'b0 };
+		// read_addr <= { !activemem, bus_read_addr };
+		if (i_wb_stb && !o_wb_stall && !i_wb_we
+				&& ({ !activemem, i_wb_addr } == f_addr))
+			f_read_sequence[0] <= 1'b1;
+	end
+
+	always @(posedge clk)
+	if (!reset)
+	begin
+		if (f_read_sequence[0])
+			assert(pre_ack[0] && read_addr == f_addr);
+		if (f_read_sequence[1])
+			assert(pre_ack[1]);
+		if (f_read_sequence[2])
+		begin
+			assert(o_wb_ack);
+			assert(o_wb_data == f_mem_data);
+		end
+	end
+	// }}}
+`endif
 	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//
@@ -763,6 +836,7 @@ module	histogram #(
 	////////////////////////////////////////////////////////////////////////
 	//
 	//
+
 	always @(posedge clk)
 	if (f_past_valid && $past(!reset && cepipe[0] && !start_reset && !bus_write) // && i_ce
 		&& $past(count == NAVGS-1))
@@ -950,9 +1024,6 @@ module	histogram #(
 			cvr_int_count <= cvr_int_count + 1;
 
 		always @(*)
-			cover(cvr_int_count == 1);
-
-		always @(posedge clk)
 			cover(cvr_int_count == 1);
 
 		always @(*)
