@@ -13,7 +13,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 // }}}
-// Copyright (C) 2017-2022, Gisselquist Technology, LLC
+// Copyright (C) 2017-2021, Gisselquist Technology, LLC
 // {{{
 // This file is part of the DSP filtering set of designs.
 //
@@ -93,16 +93,17 @@ module	lfsr #(
 	// work for us.
 `ifdef	WORKS_WITH_VERILATOR
 	reg	[(LN+WS-2):0]	reset_value;
+
 	initial	reset_value[(LN-1):0] = INITIAL_FILL;
-	generate
-	for(k=0; k<WS-1; k=k+1)
+	generate for(k=0; k<WS-1; k=k+1)
+	begin : CALC_RESET
 		initial	reset_value[(LN+k)] = ^(reset_value[(LN+k-1):k]&TAPS);
-	endgenerate
+	end endgenerate
 `else
 	wire	[(LN+WS-2):0]	reset_value;
+
 	assign	reset_value[(LN-1):0] = INITIAL_FILL;
-	generate
-	for(k=0; k<WS-1; k=k+1)
+	generate for(k=0; k<WS-1; k=k+1)
 	begin : CALC_RESET
 		assign	reset_value[(LN+k)] = ^(reset_value[ k +: LN]&TAPS);
 	end endgenerate
@@ -127,8 +128,7 @@ module	lfsr #(
 
 	// Then calculate the parts that are not shifted.
 	// {{{
-	generate
-	for(k=0; k<WS; k = k+1)
+	generate for(k=0; k<WS; k = k+1)
 	begin : RUN_LFSR
 		always @(posedge i_clk)
 		if (i_reset)
@@ -150,17 +150,14 @@ module	lfsr #(
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 `ifdef	FORMAL
-
-`ifdef	LFSR
-	reg	f_last_clk;
-
-	initial	assume(i_reset);
-`endif
-
 	reg	f_past_valid;
 	initial	f_past_valid = 0;
 	always @(posedge i_clk)
 		f_past_valid = 1'b1;
+
+	always @(*)
+	if (!f_past_valid)
+		assume(i_reset);
 
 	always @(posedge i_clk)
 	if ((f_past_valid)&&($past(i_reset)))
@@ -176,12 +173,12 @@ module	lfsr #(
 	if ((f_past_valid)&&(!$past(i_reset))&&($past(i_ce)))
 		assert(sreg[LN-1] == ^({sreg[(LN-2):0], $past(sreg[WS-1])}
 					& TAPS));
-	generate
-	for(k=0; k<WS-1; k=k+1)
+	generate for(k=0; k<WS-1; k=k+1)
+	begin : CHECK_SREG
 		always @(posedge i_clk)
 		if ((f_past_valid)&&(!$past(i_reset)))
 			assert(sreg[LN+k] == ^(sreg[(LN-1+k):k]&TAPS));
-	endgenerate
+	end endgenerate
 
 	// The shift register is never allowed to become zero, lest it get
 	// stuck and produce nothing but zero outputs.
