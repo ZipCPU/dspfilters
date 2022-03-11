@@ -153,7 +153,7 @@ module	histogram #(
 	reg				start_reset, resetpipe, activemem,
 					first_reset_clock;
 	reg	[2:0]			cepipe;
-	reg	[ACCW-1:0]		memval_raw, memnew, bypass_data;
+	reg	[ACCW-1:0]		memval_raw, memnew;
 	wire	[ACCW-1:0]		memval;
 	reg	[AW:0]			r_sample, memaddr;
 	reg	[AW:0]			read_addr;
@@ -199,11 +199,13 @@ module	histogram #(
 	skidbuffer #(
 		.OPT_OUTREG(1'b0), .DW(DW + (DW/8))
 	) wskd (
+		// {{{
 		.i_clk(S_AXI_ACLK), .i_reset(!S_AXI_ARESETN),
 		.i_valid(S_AXI_WVALID), .o_ready(S_AXI_WREADY),
 			.i_data({ S_AXI_WDATA, S_AXI_WSTRB }),
 		.o_valid(skd_wvalid), .i_ready(axil_write_ready),
 			.o_data({ skd_wdata, skd_wstrb })
+		// }}}
 	);
 
 	assign	axil_write_ready = skd_awvalid && skd_wvalid
@@ -252,7 +254,6 @@ module	histogram #(
 		rvalid <= 1'b0;
 
 	assign	S_AXI_RVALID = rvalid;
-	assign	read_stall = i_ce && !resetpipe;
 	assign	axil_read_ready = pre_ack == 0
 				&& (!S_AXI_RVALID || S_AXI_RREADY)
 				&& !read_stall && skd_arvalid;
@@ -266,10 +267,10 @@ module	histogram #(
 	assign	reset = i_reset;
 	assign	bus_write = i_wb_stb && i_wb_we;
 	assign	bus_read_addr = i_wb_addr;
-
-	assign	read_stall = i_ce && !resetpipe;
 	// }}}
 `endif
+
+	assign	read_stall = i_ce && !resetpipe;
 	// }}}
 
 	// Zero out our memory initially
@@ -461,17 +462,18 @@ module	histogram #(
 	// {{{
 	always @(posedge i_clk)
 	begin
-		o_wb_data = 0;
-		o_wb_data[ACCW-1:0] = memval; // mem[{ !activemem, i_wb_addr }];
+		o_wb_data <= 0;
+		o_wb_data[ACCW-1:0] <= memval; //mem[{ !activemem, i_wb_addr }];
 	end
 
-	initial { o_wb_ack, pre_ack } = 0;
+	initial pre_ack = 2'b00;
 	always @(posedge clk)
 	if (reset || !i_wb_cyc)
-		pre_ack <= 0;	
+		pre_ack <= 2'b00;
 	else
-		pre_ack <= { pre_ack[1:0], i_wb_stb && !o_wb_stall };
+		pre_ack <= { pre_ack[0], i_wb_stb && !o_wb_stall };
 
+	initial o_wb_ack = 0;
 	always @(posedge clk)
 		o_wb_ack <= !reset && i_wb_cyc && pre_ack[1];
 
@@ -879,14 +881,14 @@ module	histogram #(
 `ifdef	AXILITE
 	assert property (@(posedge clk)
 		disable iff (reset)
-		axil_read_ready |=> !S_AXI_RVALID ##1 S_AXI_RVALID);
+		axil_read_ready |=> !S_AXI_RVALID [*2] ##1 S_AXI_RVALID);
 
 	assert property (@(posedge clk)
 		disable iff (reset)
 		axil_write_ready |=> S_AXI_BVALID);
 `else
 	assert property (@(posedge clk)
-		i_wb_stb && !o_wb_stall && !reset ##1 i_wb_cyc && !reset
+		i_wb_stb && !o_wb_stall && !reset ##1 i_wb_cyc && !reset [*2]
 			|=> o_wb_ack);
 `endif	// AXILITE
 `endif
@@ -1006,6 +1008,7 @@ module	histogram #(
 			S_AXI_ARVALID && S_AXI_ARREADY
 				&&(bus_read_addr == f_addr[AW-1:0]) && activemem
 				&& f_addr[AW] == !activemem
+			##1 1
 			##1 S_AXI_RVALID && S_AXI_RDATA[ACCW-1:0] == f_mem_data
 				&& f_mem_data == NAVGS
 `else
