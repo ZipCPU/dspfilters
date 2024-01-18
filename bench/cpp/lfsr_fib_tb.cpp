@@ -13,7 +13,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 // }}}
-// Copyright (C) 2017-2022, Gisselquist Technology, LLC
+// Copyright (C) 2017-2024, Gisselquist Technology, LLC
 // {{{
 // This file is part of the DSP filtering set of designs.
 //
@@ -53,8 +53,11 @@
 
 #ifdef	OLD_VERILATOR
 #define	VVAR(A)	v__DOT_ ## A
-#else
+#elif	defined(NEW_VERILATOR)
 #define	VVAR(A) lfsr_fib__DOT_ ## A
+#else
+#include "Vlfsr_fib___024root.h"
+#define	VVAR(A) rootp->lfsr_fib__DOT_ ## A
 #endif
 
 #define	sreg	VVAR(_sreg)

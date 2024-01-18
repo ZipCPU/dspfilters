@@ -11,7 +11,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 // }}}
-// Copyright (C) 2017-2022, Gisselquist Technology, LLC
+// Copyright (C) 2017-2024, Gisselquist Technology, LLC
 // {{{
 // This file is part of the DSP filtering set of designs.
 //
@@ -75,13 +75,12 @@ module	genericfir #(
 
 	// Initialize filter memory
 	// {{{
-	generate
-	if(FIXED_TAPS)
-	begin
+	generate if(FIXED_TAPS)
+	begin : LOAD_TAPS
 		initial $readmemh("taps.hex", tap);
 
 		assign	tap_wr = 1'b0;
-	end else begin
+	end else begin : GEN_TAP_UPDATE_LOGIC
 		assign	tap_wr = i_tap_wr;
 		assign	tap[0] = i_tap;
 	end
@@ -109,14 +108,18 @@ module	genericfir #(
 		);
 
 		if (!FIXED_TAPS)
+		begin : TAP_OUT
 			assign	tap[NTAPS-1-k] = tapout[k+1];
+		end
 
 		// Make verilator happy
 		// {{{
 		// verilator lint_off UNUSED
 		wire	[(TW-1):0]	unused_tap;
 		if (FIXED_TAPS)
+		begin : GEN_UNUSED
 			assign	unused_tap    = tapout[k];
+		end
 		// verilator lint_on UNUSED
 		// }}}
 	end endgenerate

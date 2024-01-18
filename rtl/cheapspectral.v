@@ -95,7 +95,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 // }}}
-// Copyright (C) 2020-2022, Gisselquist Technology, LLC
+// Copyright (C) 2020-2024, Gisselquist Technology, LLC
 // {{{
 // This file is part of the DSP filtering set of designs.
 //
@@ -547,12 +547,12 @@ module	cheapspectral #(
 	// data_out
 	// {{{
 	generate if (OPT_DBLBUFFER)
-	begin
+	begin : GEN_BUFFERED_OUT
 
 		always @(posedge i_clk)
 			data_out <= avmem[{!av_write_addr[AW-1], i_wb_addr }];
 
-	end else begin
+	end else begin : GEN_OUT
 
 		always @(posedge i_clk)
 			data_out <= avmem[i_wb_addr];

@@ -23,7 +23,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 // }}}
-// Copyright (C) 2021-2022, Gisselquist Technology, LLC
+// Copyright (C) 2021-2024, Gisselquist Technology, LLC
 // {{{
 // This file is part of the DSP filtering set of designs.
 //
@@ -71,6 +71,7 @@ module ratfil #(
 		input	wire			i_clk,
 		input	wire			i_reset,
 		output	wire	[31:0]		o_IW,
+		output	wire	[31:0]		o_TW,
 		output	wire	[31:0]		o_OW,
 		output	wire	[31:0]		o_NCOEFFS,
 		output	wire	[31:0]		o_NUP,
@@ -145,7 +146,9 @@ module ratfil #(
 	wire	mem_stalled, product_stalled, acc_stalled;
 
 `ifdef	VERILATORTB
-	assign	S_AXI_ACLK = i_clk
+	wire	S_AXI_ACLK, S_AXI_ARESETN;
+
+	assign	S_AXI_ACLK = i_clk;
 	assign	S_AXI_ARESETN = !i_reset;
 
 	assign	o_IW      = IW;
@@ -203,9 +206,6 @@ module ratfil #(
 	////////////////////////////////////////////////////////////////////////
 	//
 	//
-
-	wire			skd_valid, skd_ready, skd_last;
-	wire	[IW-1:0]	skd_data;
 
 	generate if (OPT_SKIDBUFFER)
 	begin : SKIDBUFFER
@@ -632,7 +632,7 @@ module ratfil #(
 	// rounded_acc
 	// {{{
 	generate if (OW == AW-LGGAIN)
-	begin
+	begin : GEN_TRUNCATE
 		assign	rounded_acc = acc[AW-LGGAIN-1:AW-LGGAIN-OW];
 	end else // if (AW-LGGAIN > OW)
 	begin : SHIFT_OUTPUT

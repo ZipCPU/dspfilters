@@ -16,7 +16,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 // }}}
-// Copyright (C) 2017-2022, Gisselquist Technology, LLC
+// Copyright (C) 2017-2024, Gisselquist Technology, LLC
 // {{{
 // This file is part of the DSP filtering set of designs.
 //
@@ -110,31 +110,36 @@ module	slowfil #(
 	// Starting at zero on reset, increment the tap write index on any
 	// write of a new tap.  This also means that changing coefficients
 	// will require a reset.
-	generate if (FIXED_TAPS)
-	begin
+	generate if (FIXED_TAPS || INITIAL_COEFFS != 0)
+	begin : LOAD_TAPS
 		initial $readmemh(INITIAL_COEFFS, tapmem);
+	end
+
+	if (FIXED_TAPS)
+	begin : NO_UPDATED_LOGIC
 
 		// Make Verilators -Wall happy
+		// {{{
 		// Verilator lint_off UNUSED
 		wire	[TW:0]	ignored_inputs;
 		assign	ignored_inputs = { i_tap_wr, i_tap };
 		// Verilator lint_on  UNUSED
-	end else begin
+		// }}}
+	end else begin : UPDATE_COEFFICIENTS
 		// Coef memory write index
 		reg	[(LGNTAPS-1):0]	tapwidx;
 
 		initial	tapwidx = 0;
 		always @(posedge i_clk)
-			if(i_reset)
-				tapwidx <= 0;
-			else if (i_tap_wr)
-				tapwidx <= tapwidx + 1'b1;
+		if(i_reset)
+			tapwidx <= 0;
+		else if (i_tap_wr)
+			tapwidx <= tapwidx + 1'b1;
 
-		if (INITIAL_COEFFS != 0)
-			initial $readmemh(INITIAL_COEFFS, tapmem);
 		always @(posedge i_clk)
-			if (i_tap_wr)
-				tapmem[tapwidx] <= i_tap;
+		if (i_tap_wr)
+			tapmem[tapwidx] <= i_tap;
+
 	end endgenerate
 	// }}}
 	////////////////////////////////////////////////////////////////////////

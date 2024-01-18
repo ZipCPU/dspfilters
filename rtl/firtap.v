@@ -25,7 +25,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 // }}}
-// Copyright (C) 2017-2022, Gisselquist Technology, LLC
+// Copyright (C) 2017-2024, Gisselquist Technology, LLC
 // {{{
 // This file is part of the DSP filtering set of designs.
 //
@@ -88,14 +88,14 @@ module	firtap #(
 	// }}}
 
 	// Determine the tap we are using
-	generate
-	if (FIXED_TAPS != 0)
+	generate if (FIXED_TAPS != 0)
+	begin : NO_TAP_UPDATES
 		// If our taps are fixed, the tap is given by the i_tap
 		// external input.  This allows the parent module to be
 		// able to use readmemh to set all of the taps in a filter
 		assign	o_tap = i_tap;
 
-	else begin
+	end else begin : GEN_TAP_UPDATE_LOGIC
 		// If the taps are adjustable, then use the i_tap_wr signal
 		// to know when to adjust the tap.  In this case, taps are
 		// strung together through the filter structure--our output

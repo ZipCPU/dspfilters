@@ -11,7 +11,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 // }}}
-// Copyright (C) 2017-2022, Gisselquist Technology, LLC
+// Copyright (C) 2017-2024, Gisselquist Technology, LLC
 // {{{
 // This file is part of the DSP filtering set of designs.
 //
@@ -49,7 +49,11 @@
 #include "verilated_vcd_c.h"
 #include "Vlfsr.h"
 
-#ifdef	NEW_VERILATOR
+#ifdef	ROOT_VERILATOR
+#include "Vlfsr___024root.h"
+
+#define	VVAR(A)	rootp->lfsr__DOT_ ## A
+#elif	defined(NEW_VERILATOR)
 #define	VVAR(A)	lfsr__DOT_ ## A
 #else
 #define	VVAR(A)	v__DOT_ ## A

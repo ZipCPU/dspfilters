@@ -14,7 +14,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 // }}}
-// Copyright (C) 2017-2022 Gisselquist Technology, LLC
+// Copyright (C) 2017-2024 Gisselquist Technology, LLC
 // {{{
 // This file is part of the DSP filtering set of designs.
 //
@@ -81,21 +81,20 @@ module	fastfir #(
 
 	// Initialize coefficients
 	// {{{
-	generate
-	if(FIXED_TAPS)
-	begin
+	generate if(FIXED_TAPS)
+	begin : LOAD_TAPS
 		initial $readmemh("taps.hex", tap);
 
 		assign	tap_wr = 1'b0;
-	end else begin
+	end else begin : GEN_TAP_UPDATES
 		assign	tap_wr = i_tap_wr;
 		assign	tap[0] = i_tap;
-	end
+	end endgenerate
 	// }}}
 
 	assign	tapout[0] = 0;
 
-	for(k=0; k<NTAPS; k=k+1)
+	generate for(k=0; k<NTAPS; k=k+1)
 	begin: FILTER
 
 		firtap #(
@@ -118,14 +117,18 @@ module	fastfir #(
 		);
 
 		if (!FIXED_TAPS)
+		begin : FORWARD_TAP
 			assign	tap[k+1] = tapout[k+1];
+		end
 
 		// Make verilator happy
 		// {{{
 		// verilator lint_off UNUSED
 		wire	[(TW-1):0]	unused_tap;
 		if (FIXED_TAPS)
+		begin : UNUSED_TAP
 			assign	unused_tap    = tapout[k+1];
+		end
 		// verilator lint_on UNUSED
 		// }}}
 	end endgenerate

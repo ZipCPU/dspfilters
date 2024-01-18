@@ -13,7 +13,7 @@
 ##
 ################################################################################
 ## }}}
-## Copyright (C) 2017-2022, Gisselquist Technology, LLC
+## Copyright (C) 2017-2024, Gisselquist Technology, LLC
 ## {{{
 ## This file is part of the DSP filtering set of designs.
 ##
@@ -57,10 +57,12 @@ PROGRAMS := slowsymf_tb genericfir_tb fastfir_tb boxcar_tb lfsr_gal_tb lfsr_fib_
 SOURCES := $(addsuffix .cpp,$(PROGRAMS)) filtertb.cpp downsampletb.cpp
 VOBJDR	:= $(RTLD)/obj_dir
 SYSVDR	:= $(VROOT)/include
-VSRC	:= verilated.cpp verilated_vcd_c.cpp
+VSRC	:= verilated.cpp verilated_vcd_c.cpp verilated_threads.cpp
 VLIB	:= $(addprefix $(OBJDIR)/,$(subst .cpp,.o,$(VSRC)))
 all:	$(PROGRAMS)
 CFLAGS	:= -Wall -Og -g $(INCS) $(VDEFS)
+
+.DELETE_ON_ERROR:
 
 $(OBJDIR)/%.o: %.cpp
 	$(mk-objdir)
@@ -71,46 +73,46 @@ $(OBJDIR)/%.o: $(SYSVDR)/%.cpp
 	$(CXX) $(CFLAGS) $(INCS) -c $< -o $@
 
 genericfir_tb: $(OBJDIR)/genericfir_tb.o $(VLIB) $(VOBJDR)/Vgenericfir__ALL.a
-	$(CXX) $(CFLAGS) $(INCS) $^ -o $@
+	$(CXX) $(CFLAGS) $(INCS) $^ -lpthread -o $@
 
 fastfir_tb: $(OBJDIR)/fastfir_tb.o $(VLIB) $(VOBJDR)/Vfastfir__ALL.a
-	$(CXX) $(CFLAGS) $(INCS) $^ -o $@
+	$(CXX) $(CFLAGS) $(INCS) $^ -lpthread -o $@
 
 slowfil_tb: $(OBJDIR)/slowfil_tb.o $(VLIB) $(VOBJDR)/Vslowfil__ALL.a
-	$(CXX) $(CFLAGS) $(INCS) $^ -o $@
+	$(CXX) $(CFLAGS) $(INCS) $^ -lpthread -o $@
 
 slowfil_srl_tb: $(OBJDIR)/slowfil_srl_tb.o $(VLIB) $(VOBJDR)/Vslowfil_srl__ALL.a
-	$(CXX) $(CFLAGS) $(INCS) $^ -o $@
+	$(CXX) $(CFLAGS) $(INCS) $^ -lpthread -o $@
 
 slowsymf_tb: $(OBJDIR)/slowsymf_tb.o $(VLIB) $(VOBJDR)/Vslowsymf__ALL.a
-	$(CXX) $(CFLAGS) $(INCS) $^ -o $@
+	$(CXX) $(CFLAGS) $(INCS) $^ -lpthread -o $@
 
 shalfband_tb: $(OBJDIR)/shalfband_tb.o $(VLIB) $(VOBJDR)/Vshalfband__ALL.a
-	$(CXX) $(FLAGS) $(INCS) $^ -o $@
+	$(CXX) $(FLAGS) $(INCS) $^ -lpthread -o $@
 
 symfil_tb: $(OBJDIR)/symfil_tb.o $(VLIB) $(VOBJDR)/Vsymfil__ALL.a
-	$(CXX) $(CFLAGS) $(INCS) $^ -o $@
+	$(CXX) $(CFLAGS) $(INCS) $^ -lpthread -o $@
 
 boxcar_tb: $(OBJDIR)/boxcar_tb.o $(VLIB) ../rtl/obj_dir/Vboxwrapper__ALL.a
-	$(CXX) $(CFLAGS) $(INCS) $^ -o $@
+	$(CXX) $(CFLAGS) $(INCS) $^ -lpthread -o $@
 
 lfsr_gal_tb: $(OBJDIR)/lfsr_gal_tb.o $(VLIB) $(VOBJDR)/Vlfsr_gal__ALL.a
-	$(CXX) $(CFLAGS) $(INCS) $^ -o $@
+	$(CXX) $(CFLAGS) $(INCS) $^ -lpthread -o $@
 
 lfsr_fib_tb: $(OBJDIR)/lfsr_fib_tb.o $(VLIB) $(VOBJDR)/Vlfsr_fib__ALL.a
-	$(CXX) $(CFLAGS) $(INCS) $^ -o $@
+	$(CXX) $(CFLAGS) $(INCS) $^ -lpthread -o $@
 
 lfsr_tb: $(OBJDIR)/lfsr_tb.o $(VLIB) $(VOBJDR)/Vlfsr__ALL.a
-	$(CXX) $(CFLAGS) $(INCS) $^ -o $@
+	$(CXX) $(CFLAGS) $(INCS) $^ -lpthread -o $@
 
 delayw_tb: $(OBJDIR)/delayw_tb.o $(VLIB) $(VOBJDR)/Vdelayw__ALL.a
-	$(CXX) $(CFLAGS) $(INCS) $^ -o $@
+	$(CXX) $(CFLAGS) $(INCS) $^ -lpthread -o $@
 
 subfildown_tb: $(OBJDIR)/subfildown_tb.o $(VLIB) $(VOBJDR)/Vsubfildown__ALL.a
-	$(CXX) $(FLAGS) $(INCS) $^ -o $@
+	$(CXX) $(FLAGS) $(INCS) $^ -lpthread -o $@
 
 cheapspectral_tb: $(OBJDIR)/cheapspectral_tb.o $(VLIB) $(VOBJDR)/Vcheapspectral__ALL.a
-	$(CXX) $(FLAGS) $(INCS) $^ -o $@
+	$(CXX) $(FLAGS) $(INCS) $^ -lpthread -o $@
 
 #
 # The "depends" target, to know what files things depend upon.  The depends

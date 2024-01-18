@@ -64,10 +64,10 @@ then
   if [[ $RLATER > 0 ]];
   then
     ## I'm not quite certain when Verilator started requiring a further
-    ## subreference through rootp-> and including the Vdesgin___024root.h
+    ## subreference through rootp-> and including the Vdesign___024root.h
     ## include file.  My best guess is that it is Verilator 4.2, but I don't
     ## know that for certain.  What I do know is that on the development
-    ## verrsion 4.211, it requires different semantics to peek at register
+    ## version 4.211, it requires different semantics to peek at register
     ## names.  This is our attempt to capture that dependency.
     echo "-DROOT_VERILATOR"
   else
